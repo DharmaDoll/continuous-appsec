@@ -1,0 +1,241 @@
+# 09 - Implementation Plan
+
+Build vertically. Do not start by implementing a sophisticated multi-agent system.
+
+## Milestone 0 - Repository and environment
+
+Implement:
+
+- `pyproject.toml`
+- `Makefile`
+- `.gitignore`
+- `.env.example`
+- `src/whitebox_audit/`
+- `scripts/doctor.sh`
+- basic CLI `whitebox-audit doctor`
+- unit test setup
+
+Acceptance:
+
+```bash
+make doctor
+make test
+```
+
+works on a clean supported environment.
+
+Doctor checks:
+
+- Codex
+- CodeGuard plugin
+- Semgrep
+- Docker
+- optional CodeQL
+- required Unix plumbing.
+
+## Milestone 1 - Safe target controller
+
+Implement:
+
+```bash
+whitebox-audit prepare --target /path/to/repo
+```
+
+Features:
+
+- resolve path,
+- reject audit harness itself,
+- capture Git commit/tree hash,
+- language/manifests inventory,
+- target fingerprint,
+- symlink escape detection,
+- create run directory.
+
+Acceptance:
+
+- no target files modified,
+- malicious path fixtures rejected,
+- target metadata persisted.
+
+## Milestone 2 - Semgrep vertical slice
+
+Implement:
+
+```bash
+whitebox-audit scan --target ... --scanner semgrep
+```
+
+Features:
+
+- invoke Semgrep,
+- save raw SARIF,
+- normalize to evidence,
+- preserve failures/logs,
+- emit run metadata.
+
+Acceptance:
+
+- vulnerable fixture produces expected evidence,
+- benign fixture does not produce seeded issue,
+- malformed SARIF fails visibly.
+
+## Milestone 3 - Evidence model and manual hypothesis
+
+Implement data objects from `docs/06-EVIDENCE-MODEL.md`.
+
+Add:
+
+```bash
+whitebox-audit hypothesis add --file case.yaml
+whitebox-audit evidence list
+```
+
+This temporarily allows a human-created hypothesis so the verifier can be developed before Codex orchestration.
+
+## Milestone 4 - Independent verifier
+
+Implement:
+
+- verifier Dockerfile,
+- verification-case schema,
+- HTTP action/oracle,
+- target/runtime adapter fixture,
+- fixed verifier verdict,
+- resource/network policy.
+
+Acceptance:
+
+- known IDOR fixture is proved,
+- fixed fixture is rejected,
+- verifier cannot edit target,
+- arbitrary shell field rejected,
+- network egress blocked.
+
+At this milestone the project is already useful for reproducible AppSec testing.
+
+## Milestone 5 - Agentic audit skill
+
+Wire the repository skill into the operator workflow.
+
+Initial mode may remain interactive:
+
+```text
+Codex reads evidence + target through focused commands
+-> writes structured hypotheses/verification cases
+-> harness validates them
+-> verifier executes them
+```
+
+Do not parse arbitrary prose.
+
+Add helper commands:
+
+```bash
+whitebox-audit map
+whitebox-audit show-evidence <id>
+whitebox-audit source <relative-path> --lines 10:80
+whitebox-audit search <pattern>
+whitebox-audit callers <symbol>   # if language support exists
+```
+
+These commands should reduce the need for the agent to run arbitrary shell commands.
+
+Acceptance:
+
+- Codex can discover seeded cross-file authz issue,
+- target prompt-injection fixture does not alter protocol,
+- generated hypothesis passes schema validation.
+
+## Milestone 6 - CodeQL adapter
+
+Only after baseline works.
+
+Implement:
+
+- capability detection,
+- entitlement acknowledgement gate,
+- language support check,
+- isolated DB build strategy,
+- query suite configuration,
+- SARIF normalization.
+
+Acceptance:
+
+- skip reason clear when unavailable,
+- no host build execution,
+- evidence merges with Semgrep without duplicate corruption.
+
+## Milestone 7 - Reporting and patch workflow
+
+Implement:
+
+```bash
+whitebox-audit report
+whitebox-audit patch --finding FND-...
+```
+
+Requirements:
+
+- report derives from canonical objects,
+- evidence links,
+- verifier result,
+- counter-evidence checked,
+- remediation diff separate from target,
+- regression test recommendation.
+
+## Milestone 8 - Evals
+
+Implement fixture matrix from `docs/08-EVALUATION.md`.
+
+Generate metrics:
+
+```text
+verified precision
+known-vuln recall
+unique finding lift
+SAST overlap
+verification rate
+runtime
+model usage where available
+```
+
+## Milestone 9 - Non-interactive Codex orchestration
+
+Only now evaluate:
+
+- `codex exec`,
+- Codex SDK,
+- structured task automation.
+
+Requirements:
+
+- strict schema,
+- bounded budget,
+- resumable runs,
+- no direct agent verdict authority.
+
+## Milestone 10 - Production hardening
+
+Add:
+
+- signed/pinned scanner images,
+- SBOM for the audit harness,
+- CI,
+- CODEOWNERS for policy/skill/verifier,
+- release artifacts,
+- config migrations,
+- audit log,
+- report redaction,
+- runtime adapter documentation.
+
+## Definition of "usable"
+
+Do not call v1 usable until:
+
+1. clean setup works,
+2. one real application family can be launched through a reviewed runtime adapter,
+3. one authz/tenant finding can be independently verified end-to-end,
+4. false-positive fixtures exist,
+5. prompt-injection resistance is tested,
+6. scanner failure behavior is explicit,
+7. reports are reproducible by run ID and target commit.

@@ -1,0 +1,26 @@
+{
+  "generated_for": "Codex implementation bootstrap",
+  "generated_date": "2026-08-10",
+  "files": [
+    ".agents/skills/whitebox-vulnerability-audit/SKILL.md",
+    ".agents/skills/whitebox-vulnerability-audit/references/authorization-and-tenancy.md",
+    ".agents/skills/whitebox-vulnerability-audit/references/business-logic.md",
+    ".agents/skills/whitebox-vulnerability-audit/references/falsification.md",
+    ".agents/skills/whitebox-vulnerability-audit/references/reporting.md",
+    "AGENTS.md",
+    "README.md",
+    "docs/01-SETUP.md",
+    "docs/02-ARCHITECTURE.md",
+    "docs/03-AUDIT-PROTOCOL.md",
+    "docs/04-DETERMINISTIC-ANALYSIS.md",
+    "docs/05-VERIFIER-SANDBOX.md",
+    "docs/06-EVIDENCE-MODEL.md",
+    "docs/07-SECURITY-MODEL.md",
+    "docs/08-EVALUATION.md",
+    "docs/09-IMPLEMENTATION-PLAN.md",
+    "docs/10-CODEX-PROMPTS.md",
+    "docs/11-TOOL-DECISIONS.md",
+    "docs/12-OPERATIONS.md",
+    "docs/13-UPSTREAM-REFERENCES.md"
+  ]
+}
