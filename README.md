@@ -16,6 +16,57 @@ The implementation must optimize for:
 6. operationally simple setup,
 7. tool independence where practical.
 
+### Current implementation
+
+Milestones 0 through 2 are implemented as an executable, safety-first foundation:
+
+- Python 3.12+ package and `whitebox-audit` CLI,
+- non-destructive `whitebox-audit doctor` capability checks,
+- human-readable and JSON doctor output,
+- stable CLI exit codes,
+- minimal child-process environment and bounded/redacted diagnostic output,
+- Ruff, mypy, pytest, Make targets, and a locked development environment,
+- native supply-chain policy enforcement, tool executable provenance, a 72-hour dependency cooldown, and
+  CycloneDX SBOM generation,
+- safe `prepare` target validation, deterministic fingerprint/inventory, hardened Git metadata collection, and
+  atomic run metadata persistence,
+- Semgrep scanner execution with explicit states and executable provenance,
+- defensive SARIF normalization into atomic, deduplicated Evidence JSONL,
+- operator-supplied SARIF ingestion through the same evidence path.
+
+CodeQL execution, hypothesis orchestration, Verifier execution, and report generation are not implemented yet.
+Semgrep is not auto-installed; an unavailable executable produces a recorded `skipped` scanner run and a
+`degraded` audit run. The current host adapter detects target mutation after execution but does not yet enforce a
+read-only mount or OS-level network denial. See [`ADR 0008`](docs/adr/0008-semgrep-evidence-boundary.md).
+
+The first MVP verification target is a TypeScript application using Next.js App Router and PostgreSQL. The
+Python package in this repository is the audit harness; it is not the audited application fixture.
+
+Bootstrap the project-local environment and run the current checks:
+
+```bash
+make setup
+make check
+make doctor
+make sbom
+# trusted setup phase with network access only
+make malware-check
+# untrusted target remains outside the harness
+make prepare TARGET=/absolute/path/to/target
+# requires a trusted, operator-installed Semgrep executable
+make scan TARGET=/absolute/path/to/target
+```
+
+`make setup` creates `.venv/` inside this repository. When `python3` is older than 3.12, select a supported
+interpreter explicitly, for example `make setup PYTHON=/usr/bin/python3.13`.
+
+`make check` includes `whitebox-audit supply-chain check`. It rejects non-exact direct/build dependencies,
+direct URL/VCS/file references, alternate package sources, unhashed or unapproved lock artifacts, lock-file
+symlink breakout, and stale lock data. `make setup` uses the committed lock, exact synchronization, and a
+72-hour new-release cooldown. `make malware-check` adds uv's preview OSV-backed malware check during a trusted
+networked setup phase; audit operation does not depend on that external service. Dependency updates follow
+[`ADR 0006`](docs/adr/0006-native-supply-chain-baseline.md).
+
 ## Core idea
 
 Do **not** feed an entire repository to an LLM and ask it to "find vulnerabilities".

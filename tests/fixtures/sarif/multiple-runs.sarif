@@ -1,0 +1,32 @@
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {"driver": {"name": "tool-a", "version": "1"}},
+      "results": [
+        {
+          "ruleId": "rule.a",
+          "level": "warning",
+          "message": {"text": "Duplicate result"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/a.py"}}}]
+        },
+        {
+          "ruleId": "rule.a",
+          "level": "warning",
+          "message": {"text": "Duplicate result"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "src/a.py"}}}]
+        }
+      ]
+    },
+    {
+      "tool": {"driver": {"name": "tool-b", "semanticVersion": "2.0"}},
+      "results": [
+        {
+          "rule": {"id": "rule.external"},
+          "message": {"text": "External path result"},
+          "locations": [{"physicalLocation": {"artifactLocation": {"uri": "file:///etc/passwd"}}}]
+        }
+      ]
+    }
+  ]
+}

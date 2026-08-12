@@ -4,6 +4,33 @@ This document defines the supported local environment and the bootstrap procedur
 
 The goal is that a new operator can clone the audit harness, install dependencies, run `make doctor`, and know exactly what is ready.
 
+## Supply-chain-safe bootstrap
+
+Run dependency installation only for this trusted harness repository, never for an audit target:
+
+```bash
+make setup
+make check
+make sbom
+# trusted setup phase with network access only
+make malware-check
+```
+
+`make setup` performs a lock-constrained exact sync and applies the configured 72-hour package publication
+cooldown. `make check` validates declared pins, approved sources, SHA-256 lock
+records, lock schema/freshness, and project-file confinement before running code-quality tests. `make sbom`
+generates `reports/whitebox-ai-audit.cdx.json` in CycloneDX 1.5 format.
+
+The offline freshness subprocess selects the reviewed project `uv.toml` explicitly, ignores uv user
+configuration, and uses no shared cache.
+
+`make malware-check` explicitly enables uv's preview OSV-backed malware check and therefore requires network
+access. Run it only in the trusted setup/update phase. Its external availability does not weaken or block the
+offline native policy gate used during audit operation.
+
+Do not bypass a failed supply-chain check. Follow the reviewed dependency update procedure in
+`docs/adr/0006-native-supply-chain-baseline.md`.
+
 ## 1. Recommended host
 
 Preferred:

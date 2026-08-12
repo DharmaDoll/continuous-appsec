@@ -112,15 +112,22 @@ Mitigation:
 
 Mitigation:
 
-- pin direct dependencies,
-- lock environment,
-- record tool versions,
+- exact-pin direct/build dependencies and reject URL/VCS/file references,
+- lock environment and verify lock freshness offline on every `make check`,
+- permit only the approved PyPI registry/artifact host and require SHA-256 lock records,
+- delay newly published packages by 72 hours,
+- record tool versions, resolved executable paths, and executable SHA-256 values,
+- generate a CycloneDX SBOM,
+- expose upstream malware checking as an explicit online defense-in-depth step during trusted setup,
 - verify upstream release source,
 - prefer official installer/source,
 - review CodeGuard updates before changing production baselines where strict reproducibility matters,
 - do not `curl | sh` inside the verifier.
 
 The Codex official installer may be used in the operator setup stage; production CI should preferably pin controlled tool images/releases.
+
+These harness-native controls are implemented from Milestone 0. Signed/digest-pinned scanner and verifier
+images, automated advisory/license review, and release signing remain production-hardening requirements.
 
 ## Threat 7 - Target path breakout
 

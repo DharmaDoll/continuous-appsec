@@ -8,9 +8,9 @@
 | CLI 名 | `whitebox-audit` |
 | Python パッケージ名 | `whitebox_audit` |
 | 文書種別 | アプリケーション詳細仕様書 |
-| 文書日付 | 2026-08-10 |
+| 文書日付 | 2026-08-12 |
 | 対象バージョン | 初期実装から v1 まで |
-| 現在の実装状態 | 設計・仕様ブートストラップ段階。実行可能なアプリケーション本体は未実装 |
+| 現在の実装状態 | Milestone 0〜2完了。安全なtarget prepare、Semgrep/SARIF Evidence vertical slice、開発・テスト基盤を実装済み |
 | 主要実装言語 | Python 3.12 以上 |
 
 本書は、既存の `README.md`、`AGENTS.md`、`docs/01-SETUP.md` から
@@ -89,6 +89,7 @@ v1 は、少なくとも次の条件をすべて満たした場合にのみ「�
 
 - ローカルの Git または非 Git ソースリポジトリ
 - Python、JavaScript、TypeScript のコードナビゲーション
+- 最初のRuntime Adapterおよび検証fixtureとしてTypeScript / Next.js App Router / PostgreSQL
 - Semgrep CE によるベースライン静的解析
 - 既存 SARIF の取込み
 - 利用条件と安全なビルド環境を満たす場合の CodeQL
@@ -842,8 +843,8 @@ Runtime Adapter は対象チームと監査側がレビューした application 
 
 ```yaml
 schema_version: 1
-name: python-fastapi-postgres
-image: org/whitebox-runtime-python:2026-08
+name: typescript-nextjs-postgres
+image: org/whitebox-runtime-nextjs:2026-08
 start:
   command_id: start-app
 health:
@@ -853,7 +854,8 @@ fixtures:
   - seed-db
 identities:
   - anonymous
-  - user
+  - tenant_a_user
+  - tenant_b_user
   - admin
 ports:
   - 8080
@@ -931,6 +933,16 @@ state mutation を明示する。
 - Scanner、Runtime Adapter、Reporter は明確な interface を持つ。
 - machine-readable schema を canonical とし、Markdown は renderer とする。
 - direct dependency を最小化し、lock file を commit する。
+- direct/build dependency は exact pin とし、URL/VCS/file reference と代替indexを拒否する。
+- dependency install は committed lock に拘束し、新規公開packageに72時間のcooldownを適用する。
+- lock内のsource、artifact host、SHA-256、schema、freshnessをnative CLIで検査する。
+- host tool provenanceとしてversion、resolved executable path、executable SHA-256を記録する。
+- audit harnessのCycloneDX SBOMを生成可能にする。
+- Next.js fixtureはNode/package manager/direct dependency/lockを固定し、registry URLとintegrityを
+  controllerが実行前に検査する。
+- Next.js fixtureのdependency installはcredentialを渡さないisolated build内だけで許可し、package
+  lifecycle scriptは既定で無効、package registry以外へのegressは禁止する。
+- scanner、verifier、runtimeのcontainer imageはproduction利用前にreview済みdigestでpinする。
 - security policy、verifier、skill の変更は高いレビュー強度を要求できる構造にする。
 
 ### 19.6 プライバシーと保持
@@ -1115,42 +1127,47 @@ Evidence pipeline と Verifier が成立する前に、複雑な LLM orchestrati
 
 ## 26. 現在の実装状態
 
-2026-08-10 時点で、リポジトリには次が存在する。
+2026-08-12 時点で、Milestone 0〜2として次を実装済みである。
 
-- 製品方針、アーキテクチャ、監査プロトコル、安全モデル、実装計画の Markdown
-- `AGENTS.md`
-- 監査ワークフロー用 Agent Skill と参照資料
-- README、ライセンス、bootstrap manifest
+- Python 3.12+ package、`whitebox-audit` CLI、`doctor` / `supply-chain check` command
+- human-readable / JSON capability report と安定した終了コード
+- minimal child environment、timeout、診断出力の長さ制限とredaction
+- project-local `.venv`、`uv.lock`、Ruff、mypy、pytest、Make targets
+- native `supply-chain check`、exact dependency pin、72-hour cooldown、artifact hash/source policy
+- tool executable provenance と CycloneDX SBOM生成
+- `Target`、`Inventory`、`AuditRun` canonical model と `prepare` CLI
+- directory-FD/no-follow走査、symlink/mount/Git metadataのfail-closed検証
+- deterministic target fingerprint、manifest/language/route inventory、atomic run metadata persistence
+- `Scanner` abstraction、Semgrep adapter、raw SARIFとscanner実行metadata
+- defensive SARIF parser、stable Evidence ID/fingerprint、atomic/deduplicating JSONL store
+- `scan` / `ingest-sarif` CLI、fake scannerによる成功/失敗/timeout/改変検知fixture
+- ADR、要件トレーサビリティ、Milestone 0〜2実行結果
+- 70件のunit/integration/security test
 
 次は未実装である。
 
-- `pyproject.toml`、Python package、CLI
-- Makefile と doctor
-- Target Controller
-- Semgrep / CodeQL adapter
-- canonical model と Evidence Store
-- Verifier image / controller / DSL
-- fixture application と自動テスト
+- CodeQL adapter
+- Evidence以外のcanonical modelとmanual Hypothesis workflow
+- Next.js / PostgreSQL fixtureとVerifier image / controller / DSL
 - Reporter、patch workflow、evaluation harness
 
-したがって、本書に記載された CLI や機能は現時点の利用可能機能ではなく、実装目標および受入仕様である。
+`hypothesis`、Verifier、agent navigation、report、patch系CLIは現時点では実装目標および受入仕様である。
+Semgrep実行は現在host adapterであり、OS-level network deny/read-only mountは未実装である。
 
 ## 27. 未決定事項
 
 以下は実装時に ADR または設定スキーマで確定する。安全側の既定値を維持する限り、Milestone 0～2
 の開始を妨げない。
 
-1. model validation に dataclasses を使うか Pydantic を使うか
-2. CLI に argparse を使うか Typer を使うか
-3. JSONL record の厳密な schema versioning / migration mechanism
-4. 非 Git 対象の tree fingerprint で除外するファイルと symlink の扱い
-5. run status と object state transition の永続 audit log 形式
-6. Severity policy の具体的な組織閾値
-7. report retention の既定期間と安全な run deletion UX
-8. 実アプリケーション向け最初の Runtime Adapter の対象 framework
-9. HTTP DSL で許可する body、header、JSONPath の厳密な部分集合
-10. scanner container の配布・署名・pinning 方式
-11. 非対話 Codex 実行での model budget、resume、失敗回復ポリシー
+1. Milestone 3以降の外部schema validationにPydanticを追加するか
+2. JSONL record の厳密な migration mechanism
+3. 非 Git 対象の tree fingerprint で除外するファイルと symlink の扱い
+4. run status と object state transition の永続 audit log 形式
+5. Severity policy の具体的な組織閾値
+6. report retention の既定期間と安全な run deletion UX
+7. HTTP DSL で許可する body、header、JSONPath の厳密な部分集合
+8. scanner container の配布・署名・pinning 方式
+9. 非対話 Codex 実行での model budget、resume、失敗回復ポリシー
 
 これらを決定する際も、対象をホスト上で実行しないこと、Discovery と Verifier を分離すること、
 `verified` を機械的証拠に限定することは変更不可の制約である。

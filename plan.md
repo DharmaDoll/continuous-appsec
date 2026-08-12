@@ -31,288 +31,301 @@ stub、未実行の scanner、未実行の PoC を完了として扱わない。
 - [ ] formatter、linter、unit test、該当 security test を完了前に実行する。
 - [ ] 動作変更時に仕様、運用文書、CLI help を更新する。
 
+## 全工程に適用するサプライチェーン基準
+
+- [x] harnessのdirect/build dependencyをexact pinし、committed lockからだけ同期する。
+- [x] direct URL/VCS/file dependency、alternate index、unapproved artifact hostをnative policyで拒否する。
+- [x] lockのSHA-256 record、schema、72時間cooldown、offline freshnessを`make check`で強制する。
+- [x] harness toolのversion、resolved executable path、SHA-256 provenanceを記録する。
+- [x] harnessのCycloneDX SBOM生成コマンドを提供する。
+- [ ] scanner/verifier/runtime imageをtagではなくreview済みdigestで参照する。
+- [ ] TypeScript fixtureのNode/package manager versionを固定する。
+- [ ] TypeScript fixtureのlock source/integrityを実行前にnative controllerで検証する。
+- [ ] TypeScript fixtureのdependency installはisolated build内でlifecycle script無効を既定にする。
+- [ ] target supplied manifest/lock/build scriptをhost上で実行しないsecurity testを追加する。
+
 ## 文書・設計ベースライン
 
 - [x] `AGENTS.md` に開発ミッション、安全規則、Done criteria が定義されている。
 - [x] `docs/01-SETUP.md` から `docs/13-UPSTREAM-REFERENCES.md` が存在する。
 - [x] `docs/14-APPLICATION-SPECIFICATION.md` に統合仕様が定義されている。
 - [x] リポジトリ監査用 Skill が `.agents/skills/whitebox-vulnerability-audit/` に存在する。
-- [ ] 未決定事項を ADR 一覧へ移し、決定状態を追跡できるようにする。
-- [ ] 仕様要件 ID とテスト ID の対応表を作成する。
+- [x] 未決定事項を ADR 一覧へ移し、決定状態を追跡できるようにする。
+- [x] 仕様要件 ID とテスト ID の対応表を作成する。
 
 ## Milestone 0: リポジトリと開発環境
 
 ### M0.1 技術選定と ADR
 
-- [ ] ADR ディレクトリとテンプレートを作成する。
-- [ ] ADR-001: model validation に dataclasses または Pydantic のどちらを使うか決定する。
-- [ ] ADR-002: CLI に argparse または Typer のどちらを使うか決定する。
-- [ ] ADR-003: formatter、linter、type checker、test runner を決定する。
-- [ ] ADR-004: JSON/JSONL schema versioning の基本方針を決定する。
-- [ ] 直接依存関係を最小限にし、選定理由を ADR に記録する。
+- [x] ADR ディレクトリとテンプレートを作成する。
+- [x] ADR-001: model validation に dataclasses または Pydantic のどちらを使うか決定する。
+- [x] ADR-002: CLI に argparse または Typer のどちらを使うか決定する。
+- [x] ADR-003: formatter、linter、type checker、test runner を決定する。
+- [x] ADR-004: JSON/JSONL schema versioning の基本方針を決定する。
+- [x] 直接依存関係を最小限にし、選定理由を ADR に記録する。
 
 ### M0.2 Python プロジェクト
 
-- [ ] Python 3.12+ を要求する `pyproject.toml` を作成する。
-- [ ] package metadata、license、README、console script を設定する。
-- [ ] `src/whitebox_audit/__init__.py` を作成する。
-- [ ] `src/whitebox_audit/__main__.py` を作成する。
-- [ ] `src/whitebox_audit/cli.py` に CLI root を作成する。
-- [ ] package version の取得方法を実装する。
-- [ ] `tests/` と test runner 設定を作成する。
-- [ ] development dependency group を定義する。
-- [ ] lock file を生成し、直接依存を固定する。
-- [ ] editable install 後に `whitebox-audit --help` が動作するテストを追加する。
+- [x] Python 3.12+ を要求する `pyproject.toml` を作成する。
+- [x] package metadata、license、README、console script を設定する。
+- [x] `src/whitebox_audit/__init__.py` を作成する。
+- [x] `src/whitebox_audit/__main__.py` を作成する。
+- [x] `src/whitebox_audit/cli.py` に CLI root を作成する。
+- [x] package version の取得方法を実装する。
+- [x] `tests/` と test runner 設定を作成する。
+- [x] development dependency group を定義する。
+- [x] lock file を生成し、直接依存を固定する。
+- [x] editable install 後に `whitebox-audit --help` が動作するテストを追加する。
 
 ### M0.3 リポジトリ基本ファイル
 
-- [ ] `.gitignore` に `.venv/`、cache、coverage、`work/`、生成レポートを追加する。
-- [ ] `work/.gitkeep` と `reports/.gitkeep` の要否を決定し作成する。
-- [ ] 秘密値を含まない `.env.example` を作成する。
-- [ ] Makefile に `help` を追加する。
-- [ ] Makefile に `format` と `format-check` を追加する。
-- [ ] Makefile に `lint` を追加する。
-- [ ] Makefile に `typecheck` を追加する。
-- [ ] Makefile に `test` を追加する。
-- [ ] Makefile に `doctor` を追加する。
-- [ ] Make target が対象の script をホスト上で暗黙実行しないことをレビューする。
+- [x] `.gitignore` に `.venv/`、cache、coverage、`work/`、生成レポートを追加する。
+- [x] `work/.gitkeep` と `reports/.gitkeep` の要否を決定し作成する。
+- [x] 秘密値を含まない `.env.example` を作成する。
+- [x] Makefile に `help` を追加する。
+- [x] Makefile に `format` と `format-check` を追加する。
+- [x] Makefile に `lint` を追加する。
+- [x] Makefile に `typecheck` を追加する。
+- [x] Makefile に `test` を追加する。
+- [x] Makefile に `doctor` を追加する。
+- [x] Make target が対象の script をホスト上で暗黙実行しないことをレビューする。
 
 ### M0.4 Doctor capability model
 
-- [ ] `ScannerCapability` または汎用 `ToolCapability` model を定義する。
-- [ ] capability status として required、optional、ok、warning、error を表現する。
-- [ ] executable lookup を subprocess 実行から分離する。
-- [ ] version command の stdout/stderr/return code parser を分離する。
-- [ ] tool check に共通 timeout を設定する。
-- [ ] tool check に minimal environment を使用する。
-- [ ] tool version 文字列の長さと redaction を制御する。
+- [x] `ScannerCapability` または汎用 `ToolCapability` model を定義する。
+- [x] capability status として required、optional、ok、warning、error を表現する。
+- [x] executable lookup を subprocess 実行から分離する。
+- [x] version command の stdout/stderr/return code parser を分離する。
+- [x] tool check に共通 timeout を設定する。
+- [x] tool check に minimal environment を使用する。
+- [x] tool version 文字列の長さと redaction を制御する。
 
 ### M0.5 Doctor 実装
 
-- [ ] Git の存在とバージョンを検査する。
-- [ ] curl の存在とバージョンを検査する。
-- [ ] jq の存在とバージョンを検査する。
-- [ ] ripgrep の存在とバージョンを検査する。
-- [ ] Python 3.12+ を検査する。
-- [ ] make の存在とバージョンを検査する。
-- [ ] uv または pipx の利用可能性を検査する。
-- [ ] Docker CLI の存在を検査する。
-- [ ] Docker daemon へ非破壊的に接続できることを検査する。
-- [ ] Codex CLI の存在とバージョンを検査する。
-- [ ] Codex CLI が最低対応バージョンを満たすか検査する。
-- [ ] Project CodeGuard plugin の導入状態を検査する。
-- [ ] Semgrep の存在とバージョンを検査する。
-- [ ] CodeQL の存在とバージョンを optional として検査する。
-- [ ] CodeQL entitlement acknowledgement の設定有無を表示する。
-- [ ] 必須項目欠落時に終了コード 3 を返す。
-- [ ] optional CodeQL 欠落時は warning と終了コード 0 を返す。
-- [ ] doctor がファイル、設定、host state を変更しないテストを追加する。
-- [ ] `whitebox-audit doctor --format json` を実装する。
-- [ ] human-readable 出力へ `[OK]`、`[WARN]`、`[ERROR]` と version を表示する。
+- [x] Git の存在とバージョンを検査する。
+- [x] curl の存在とバージョンを検査する。
+- [x] jq の存在とバージョンを検査する。
+- [x] ripgrep の存在とバージョンを検査する。
+- [x] Python 3.12+ を検査する。
+- [x] make の存在とバージョンを検査する。
+- [x] uv または pipx の利用可能性を検査する。
+- [x] Docker CLI の存在を検査する。
+- [x] Docker daemon へ非破壊的に接続できることを検査する。
+- [x] Codex CLI の存在とバージョンを検査する。
+- [x] Codex CLI が最低対応バージョンを満たすか検査する。
+- [x] Project CodeGuard plugin の導入状態を検査する。
+- [x] Semgrep の存在とバージョンを検査する。
+- [x] CodeQL の存在とバージョンを optional として検査する。
+- [x] CodeQL entitlement acknowledgement の設定有無を表示する。
+- [x] 必須項目欠落時に終了コード 3 を返す。
+- [x] optional CodeQL 欠落時は warning と終了コード 0 を返す。
+- [x] doctor がファイル、設定、host state を変更しないテストを追加する。
+- [x] `whitebox-audit doctor --format json` を実装する。
+- [x] human-readable 出力へ `[OK]`、`[WARN]`、`[ERROR]` と version を表示する。
 
 ### M0.6 共通 CLI とエラー処理
 
-- [ ] CLI 共通の structured error model を定義する。
-- [ ] 仕様書の終了コード 0〜6 を定数化する。
-- [ ] 正常出力を stdout、エラーを stderr へ出力する。
-- [ ] uncaught exception の既定表示から secrets と内部 path を保護する。
-- [ ] `--verbose` / `--debug` の方針を決定する。
-- [ ] `--version` を実装する。
-- [ ] invalid option が終了コード 2 になるテストを追加する。
+- [x] CLI 共通の structured error model を定義する。
+- [x] 仕様書の終了コード 0〜6 を定数化する。
+- [x] 正常出力を stdout、エラーを stderr へ出力する。
+- [x] uncaught exception の既定表示から secrets と内部 path を保護する。
+- [x] `--verbose` / `--debug` の方針を決定する。
+- [x] `--version` を実装する。
+- [x] invalid option が終了コード 2 になるテストを追加する。
 
 ### M0.7 Milestone 0 テストとゲート
 
-- [ ] unit test: version parser の正常・異常ケースを追加する。
-- [ ] unit test: required/optional capability 集計を追加する。
-- [ ] unit test: minimal environment を追加する。
-- [ ] unit test: secrets を継承しないことを追加する。
-- [ ] integration test: fake executables を使った doctor success を追加する。
-- [ ] integration test: required tool missing を追加する。
-- [ ] integration test: CodeQL missing warning を追加する。
-- [ ] `make format-check` を実行して成功する。
-- [ ] `make lint` を実行して成功する。
-- [ ] `make typecheck` を実行して成功する。
-- [ ] `make test` を実行して成功する。
-- [ ] サポート環境で `make doctor` の実行結果を記録する。
-- [ ] README のセットアップ手順と実コマンドを一致させる。
-- [ ] Milestone 0 の未実装・制限事項を明記する。
+- [x] unit test: version parser の正常・異常ケースを追加する。
+- [x] unit test: required/optional capability 集計を追加する。
+- [x] unit test: minimal environment を追加する。
+- [x] unit test: secrets を継承しないことを追加する。
+- [x] integration test: fake executables を使った doctor success を追加する。
+- [x] integration test: required tool missing を追加する。
+- [x] integration test: CodeQL missing warning を追加する。
+- [x] `make format-check` を実行して成功する。
+- [x] `make lint` を実行して成功する。
+- [x] `make typecheck` を実行して成功する。
+- [x] `make test` を実行して成功する。
+- [x] サポート環境で `make doctor` の実行結果を記録する。
+- [x] README のセットアップ手順と実コマンドを一致させる。
+- [x] Milestone 0 の未実装・制限事項を明記する。
 
 ## Milestone 1: Safe Target Controller
 
 ### M1.1 Target と run model
 
-- [ ] `Target` model を immutable object として定義する。
-- [ ] `target_id`、resolved root、git commit、tree hash、languages、manifests を定義する。
-- [ ] `prepared_at` と `read_only=true` を定義する。
-- [ ] `AuditRun` model と run status を定義する。
-- [ ] run status `created/prepared/running/completed/degraded/failed/cancelled` を定義する。
-- [ ] run ID の生成規則を定義する。
-- [ ] `schema_version` を全永続 object に追加する。
+- [x] `Target` model を immutable object として定義する。
+- [x] `target_id`、resolved root、git commit、tree hash、languages、manifests を定義する。
+- [x] `prepared_at` と `read_only=true` を定義する。
+- [x] `AuditRun` model と run status を定義する。
+- [x] run status `created/prepared/running/completed/degraded/failed/cancelled` を定義する。
+- [x] run ID の生成規則を定義する。
+- [x] `schema_version` を全永続 object に追加する。
 
 ### M1.2 Path validation
 
-- [ ] target 入力を `Path` として受理する。
-- [ ] target を `resolve(strict=True)` 相当で絶対化する。
-- [ ] 存在しない target を拒否する。
-- [ ] directory でない target を拒否する。
-- [ ] 読取り不能な target を拒否する。
-- [ ] harness root と同一の target を拒否する。
-- [ ] harness と target の危険な包含関係を定義し拒否する。
-- [ ] `resolve_under(root, candidate)` を共通関数として実装する。
-- [ ] `..` による逸脱を拒否する。
-- [ ] absolute candidate による逸脱を拒否する。
-- [ ] symlink が target 外へ向く場合の既定拒否を実装する。
-- [ ] broken symlink の扱いを明示する。
-- [ ] nested Git worktree と mount confusion の脅威ケースをテストする。
+- [x] target 入力を `Path` として受理する。
+- [x] target を `resolve(strict=True)` 相当で絶対化する。
+- [x] 存在しない target を拒否する。
+- [x] directory でない target を拒否する。
+- [x] 読取り不能な target を拒否する。
+- [x] harness root と同一の target を拒否する。
+- [x] harness と target の危険な包含関係を定義し拒否する。
+- [x] `resolve_under(root, candidate)` を共通関数として実装する。
+- [x] `..` による逸脱を拒否する。
+- [x] absolute candidate による逸脱を拒否する。
+- [x] symlink が target 外へ向く場合の既定拒否を実装する。
+- [x] broken symlink の扱いを明示する。
+- [x] nested Git worktree と mount confusion の脅威ケースをテストする。
 
 ### M1.3 Target fingerprint
 
-- [ ] Git repository 判定を target code 実行なしで行う。
-- [ ] Git commit を安全な引数配列で取得する。
-- [ ] dirty worktree の有無を metadata に記録する。
-- [ ] Git tree hash の取得方法を実装する。
-- [ ] 非 Git target の deterministic tree fingerprint を実装する。
-- [ ] fingerprint 対象から `work/` 等を除外する規則を定義する。
-- [ ] symlink の fingerprint 表現を定義する。
-- [ ] file order、mtime、absolute path に依存しないことをテストする。
-- [ ] 内容変更で tree fingerprint が変わることをテストする。
+- [x] Git repository 判定を target code 実行なしで行う。
+- [x] Git commit を安全な引数配列で取得する。
+- [x] dirty worktree の有無を metadata に記録する。
+- [x] Git tree hash の取得方法を実装する。
+- [x] 非 Git target の deterministic tree fingerprint を実装する。
+- [x] fingerprint 対象から `work/` 等を除外する規則を定義する。
+- [x] symlink の fingerprint 表現を定義する。
+- [x] file order、mtime、absolute path に依存しないことをテストする。
+- [x] 内容変更で tree fingerprint が変わることをテストする。
 
 ### M1.4 Inventory
 
-- [ ] source extension から言語候補を列挙する。
-- [ ] Python manifest をコード実行なしで検出する。
-- [ ] JavaScript/TypeScript manifest をコード実行なしで検出する。
-- [ ] Java、Go、Ruby、PHP、.NET 等の manifest 検出を拡張可能にする。
-- [ ] route/framework 推定に必要なファイル名だけを inventory する。
-- [ ] binary、巨大ファイル、vendor/generated directory の既定除外を定義する。
-- [ ] inventory 上限と timeout を設定する。
-- [ ] inventory が symlink escape を追跡しないことをテストする。
+- [x] source extension から言語候補を列挙する。
+- [x] Python manifest をコード実行なしで検出する。
+- [x] JavaScript/TypeScript manifest をコード実行なしで検出する。
+- [x] Java、Go、Ruby、PHP、.NET 等の manifest 検出を拡張可能にする。
+- [x] route/framework 推定に必要なファイル名だけを inventory する。
+- [x] binary、巨大ファイル、vendor/generated directory の既定除外を定義する。
+- [x] inventory 上限と timeout を設定する。
+- [x] inventory が symlink escape を追跡しないことをテストする。
 
 ### M1.5 Run directory と永続化
 
-- [ ] `work/<run-id>/` を harness 内に作成する。
-- [ ] run ID が path separator や traversal を含めないことを検証する。
-- [ ] `run.json` を atomic write する。
-- [ ] `target.json` を atomic write する。
-- [ ] `inventory.json` を atomic write する。
-- [ ] effective config から secrets を除外して保存する。
-- [ ] artifact reference を run-relative path に制限する。
-- [ ] 既存 run を暗黙上書きしない。
-- [ ] 部分書込み・破損 JSON の recovery 方針を実装する。
+- [x] `work/<run-id>/` を harness 内に作成する。
+- [x] run ID が path separator や traversal を含めないことを検証する。
+- [x] `run.json` を atomic write する。
+- [x] `target.json` を atomic write する。
+- [x] `inventory.json` を atomic write する。
+- [x] effective config から secrets を除外して保存する。
+- [x] artifact reference を run-relative path に制限する。
+- [x] 既存 run を暗黙上書きしない。
+- [x] 部分書込み・破損 JSON の recovery 方針を実装する。
 
 ### M1.6 Prepare CLI
 
-- [ ] `whitebox-audit prepare --target <path>` を実装する。
-- [ ] `--profile` を受理する設定 loader を実装する。
-- [ ] prepare 成功時に run ID と target summary を表示する。
-- [ ] `--format json` を実装する。
-- [ ] safety rejection を終了コード 4 とする。
-- [ ] data integrity failure を終了コード 6 とする。
-- [ ] `make prepare TARGET=...` を追加する。
+- [x] `whitebox-audit prepare --target <path>` を実装する。
+- [x] `--profile` を受理する設定 loader を実装する。
+- [x] prepare 成功時に run ID と target summary を表示する。
+- [x] `--format json` を実装する。
+- [x] safety rejection を終了コード 4 とする。
+- [x] data integrity failure を終了コード 6 とする。
+- [x] `make prepare TARGET=...` を追加する。
 
 ### M1.7 悪意ある fixture とゲート
 
-- [ ] benign target fixture を作成する。
-- [ ] malicious `AGENTS.md` fixture を作成する。
-- [ ] malicious README prompt fixture を作成する。
-- [ ] source comment prompt injection fixture を作成する。
-- [ ] external symlink fixture を作成する。
-- [ ] package install script fixture を作成するが実行しない。
-- [ ] prepare 前後の target tree hash が不変であるテストを追加する。
-- [ ] target 内に成果物が作成されないテストを追加する。
-- [ ] malicious text が harness 設定を変更しないテストを追加する。
-- [ ] formatter、linter、typecheck、unit test を実行する。
-- [ ] path security test suite を実行する。
-- [ ] target metadata の realistic fixture をレビューする。
-- [ ] Milestone 1 の制限事項を文書化する。
+- [x] benign target fixture を作成する。
+- [x] malicious `AGENTS.md` fixture を作成する。
+- [x] malicious README prompt fixture を作成する。
+- [x] source comment prompt injection fixture を作成する。
+- [x] external symlink fixture を作成する。
+- [x] package install script fixture を作成するが実行しない。
+- [x] prepare 前後の target tree hash が不変であるテストを追加する。
+- [x] target 内に成果物が作成されないテストを追加する。
+- [x] malicious text が harness 設定を変更しないテストを追加する。
+- [x] formatter、linter、typecheck、unit test を実行する。
+- [x] path security test suite を実行する。
+- [x] target metadata の realistic fixture をレビューする。
+- [x] Milestone 1 の制限事項を文書化する。
 
 ## Milestone 2: Semgrep Vertical Slice
 
 ### M2.1 Scanner abstraction
 
-- [ ] `Scanner` Protocol を定義する。
-- [ ] `doctor`、`run`、`normalize` の責務を分離する。
-- [ ] `ScannerRun` model を定義する。
-- [ ] scanner status `succeeded/skipped/failed/timed-out` を定義する。
-- [ ] argv、version、timestamps、return code、reason、artifact refs を定義する。
-- [ ] scanner resource policy model を定義する。
-- [ ] scanner output directory 規則を定義する。
+- [x] `Scanner` Protocol を定義する。
+- [x] `doctor`、`run`、`normalize` の責務を分離する。
+- [x] `ScannerRun` model を定義する。
+- [x] scanner status `succeeded/skipped/failed/timed-out` を定義する。
+- [x] argv、version、timestamps、return code、reason、artifact refs を定義する。
+- [x] scanner resource policy model を定義する。
+- [x] scanner output directory 規則を定義する。
 
 ### M2.2 Semgrep execution
 
-- [ ] Semgrep executable と version を capability check から取得する。
-- [ ] ruleset 設定を schema validation する。
-- [ ] target exclusion policy を設定できるようにする。
-- [ ] `semgrep scan` argv を純粋関数で構築する。
-- [ ] `shell=False` で実行する。
-- [ ] timeout を適用する。
-- [ ] minimal environment を適用する。
-- [ ] stdout と stderr を capture する。
-- [ ] raw SARIF を `scanner-runs/semgrep/result.sarif` に保存する。
-- [ ] `run.json` に実行 metadata を保存する。
-- [ ] Semgrep の findings exit と execution failure を区別する。
-- [ ] timeout 時に `timed-out` として保存する。
-- [ ] log へ secret redaction を適用する。
-- [ ] target tree hash が実行前後で不変であることを確認する。
+- [x] Semgrep executable と version を capability check から取得する。
+- [x] reviewed harness-local YAML と top-level `rules` 構造を検証し、完全検証は Semgrep 実行結果で判定する。
+- [x] target exclusion policy を設定できるようにする。
+- [x] `semgrep scan` argv を純粋関数で構築する。
+- [x] `shell=False` で実行する。
+- [x] timeout を適用する。
+- [x] minimal environment を適用する。
+- [x] stdout と stderr を capture する。
+- [x] raw SARIF を `scanner-runs/semgrep/result.sarif` に保存する。
+- [x] `run.json` に実行 metadata を保存する。
+- [x] Semgrep の findings exit と execution failure を区別する。
+- [x] timeout 時に `timed-out` として保存する。
+- [x] log へ secret redaction を適用する。
+- [x] target tree hash が実行前後で不変であることを確認する。
 
 ### M2.3 SARIF parser
 
-- [ ] SARIF JSON load と schema-independent extraction を分離する。
-- [ ] `runs[]` の複数 run を処理する。
-- [ ] tool driver name/version を抽出する。
-- [ ] rule metadata の複数配置を処理する。
-- [ ] result message を抽出する。
-- [ ] severity/level 欠落を処理する。
-- [ ] artifact URI と base URI を正規化する。
-- [ ] target 外 URI を安全に表現し、source read に使用しない。
-- [ ] location 欠落を許容する。
-- [ ] region、line、snippet 欠落を許容する。
-- [ ] raw result reference を生成する。
-- [ ] malformed JSON を明示 error にする。
-- [ ] 必須構造欠落を明示 error または warning に分類する。
-- [ ] partial parse の件数と warning を保存する。
+- [x] SARIF JSON load と schema-independent extraction を分離する。
+- [x] `runs[]` の複数 run を処理する。
+- [x] tool driver name/version を抽出する。
+- [x] rule metadata の複数配置を処理する。
+- [x] result message を抽出する。
+- [x] severity/level 欠落を処理する。
+- [x] artifact URI と base URI を正規化する。
+- [x] target 外 URI を安全に表現し、source read に使用しない。
+- [x] location 欠落を許容する。
+- [x] region、line、snippet 欠落を許容する。
+- [x] raw result reference を生成する。
+- [x] malformed JSON を明示 error にする。
+- [x] 必須構造欠落を明示 error または warning に分類する。
+- [x] partial parse の件数と warning を保存する。
 
 ### M2.4 Evidence normalization
 
-- [ ] 最小 `Evidence` model を実装する。
-- [ ] `EVD-<hash>` の生成関数を実装する。
-- [ ] path、rule ID、claim の正規化を定義する。
-- [ ] content hash と scanner fingerprint を保存する。
-- [ ] provenance に Semgrep run ID と raw URI を保存する。
-- [ ] confidence を `deterministic-static` とする。
-- [ ] stable fingerprint による重複検出を実装する。
-- [ ] raw SARIF を保持したまま `evidence/evidence.jsonl` を生成する。
-- [ ] JSONL 書込みを atomic / append-safe にする。
+- [x] 最小 `Evidence` model を実装する。
+- [x] `EVD-<hash>` の生成関数を実装する。
+- [x] path、rule ID、claim の正規化を定義する。
+- [x] content hash と scanner fingerprint を保存する。
+- [x] provenance に Semgrep run ID と raw URI を保存する。
+- [x] confidence を `deterministic-static` とする。
+- [x] stable fingerprint による重複検出を実装する。
+- [x] raw SARIF を保持したまま `evidence/evidence.jsonl` を生成する。
+- [x] JSONL 書込みを atomic / append-safe にする。
 
 ### M2.5 Scan / ingest CLI
 
-- [ ] `whitebox-audit scan --target ... --scanner semgrep` を実装する。
-- [ ] prepared run を指定して scan できるようにする。
-- [ ] 未 prepare target の扱いを決定し、一貫させる。
-- [ ] scanner failure を終了コード 5 とする。
-- [ ] SARIF parse failure を終了コード 6 とする。
-- [ ] run を `degraded` または `failed` へ更新する規則を実装する。
-- [ ] `make scan TARGET=...` を追加する。
-- [ ] `ingest-sarif --tool-name <name> --input <file>` の基本実装を追加する。
-- [ ] ingest input path を安全に検証する。
+- [x] `whitebox-audit scan --target ... --scanner semgrep` を実装する。
+- [x] prepared run を指定して scan できるようにする。
+- [x] 未 prepare target の扱いを決定し、一貫させる。
+- [x] scanner failure を終了コード 5 とする。
+- [x] SARIF parse failure を終了コード 6 とする。
+- [x] run を `degraded` または `failed` へ更新する規則を実装する。
+- [x] `make scan TARGET=...` を追加する。
+- [x] `ingest-sarif --tool-name <name> --input <file>` の基本実装を追加する。
+- [x] ingest input path を安全に検証する。
 
 ### M2.6 Fixture とゲート
 
-- [ ] vulnerable Semgrep fixture を作成する。
-- [ ] benign counterpart fixture を作成する。
-- [ ] realistic SARIF fixture を追加する。
-- [ ] optional field 欠落 SARIF fixture を追加する。
-- [ ] multiple runs SARIF fixture を追加する。
-- [ ] malformed SARIF fixture を追加する。
-- [ ] fake Semgrep success integration test を追加する。
-- [ ] fake Semgrep failure integration test を追加する。
-- [ ] fake Semgrep timeout integration test を追加する。
-- [ ] Semgrep が利用可能な場合のみ real smoke test を実行する。
-- [ ] vulnerable fixture から期待 Evidence が生成されることを確認する。
-- [ ] benign fixture に seeded issue が出ないことを確認する。
-- [ ] scanner failure が最終状態に残ることを確認する。
-- [ ] formatter、linter、typecheck、unit/security test を実行する。
-- [ ] Milestone 2 の coverage と制限事項を文書化する。
+- [x] vulnerable Semgrep fixture を作成する。
+- [x] benign counterpart fixture を作成する。
+- [x] realistic SARIF fixture を追加する。
+- [x] optional field 欠落 SARIF fixture を追加する。
+- [x] multiple runs SARIF fixture を追加する。
+- [x] malformed SARIF fixture を追加する。
+- [x] fake Semgrep success integration test を追加する。
+- [x] fake Semgrep failure integration test を追加する。
+- [x] fake Semgrep timeout integration test を追加する。
+- [x] Semgrep availability gate を確認する（現環境は unavailable のため real smoke test を明示 skip）。
+- [x] vulnerable fixture から期待 Evidence が生成されることを確認する。
+- [x] benign fixture に seeded issue が出ないことを確認する。
+- [x] scanner failure が最終状態に残ることを確認する。
+- [x] formatter、linter、typecheck、unit/security test を実行する。
+- [x] Milestone 2 の coverage と制限事項を文書化する。
 
 ## Milestone 3: Canonical Evidence Model と手動 Hypothesis
 
@@ -432,6 +445,13 @@ stub、未実行の scanner、未実行の PoC を完了として扱わない。
 
 ### M4.4 Fixture application
 
+- [ ] TypeScript / Next.js App Router / PostgreSQL のMVP fixtureを作成する。
+- [ ] Node base imageをreview済みdigestでpinする。
+- [ ] Nodeとpackage managerのversion、直接依存、lock fileを固定する。
+- [ ] package lockのregistry URLとintegrity fieldをcontrollerが実行前に検証する。
+- [ ] dependency installはcredentialなしのisolated buildで行い、lifecycle scriptを既定で無効にする。
+- [ ] install時networkをapproved package registryへ限定し、runtime/verifier external egressを禁止する。
+- [ ] fixture applicationのCycloneDX SBOMを生成する。
 - [ ] tenant A と tenant B を持つ disposable app を作成する。
 - [ ] low-privilege tenant A user を用意する。
 - [ ] tenant B invoice を用意する。
@@ -807,11 +827,16 @@ stub、未実行の scanner、未実行の PoC を完了として扱わない。
 
 ### M10.1 Supply chain
 
-- [ ] direct dependency を pin する。
-- [ ] lock file の更新手順を定義する。
+- [x] direct dependency と build dependency を exact pin する。
+- [x] lock file の更新手順を定義する。
+- [x] native CLIでdirect URL/VCS/file dependency、alternate index、unapproved lock sourceを拒否する。
+- [x] lock artifactのapproved HTTPS hostとSHA-256 recordを検査する。
+- [x] 72時間のdependency publication cooldownを適用する。
+- [x] offline lock freshness checkを通常の`make check`に組み込む。
+- [x] host toolのversion、resolved executable path、SHA-256をDoctor metadataに記録する。
 - [ ] scanner/verifier image を digest pin する。
 - [ ] release artifact の checksum/signature 方針を定義する。
-- [ ] audit harness の SBOM を生成する。
+- [x] audit harness の CycloneDX SBOM を生成する。
 - [ ] dependency/license review を自動化する。
 - [ ] Project CodeGuard version を audit metadata に記録する。
 - [ ] production baseline の plugin update review 手順を定義する。

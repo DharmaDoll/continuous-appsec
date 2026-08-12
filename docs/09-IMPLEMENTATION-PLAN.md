@@ -2,6 +2,10 @@
 
 Build vertically. Do not start by implementing a sophisticated multi-agent system.
 
+Implementation status on 2026-08-12: Milestones 0 through 2 are complete. Milestone 3 is next. See `plan.md`
+for the executable checklist and `docs/16-MILESTONE-0-RESULTS.md` through
+`docs/18-MILESTONE-2-RESULTS.md` for verified coverage and limitations.
+
 ## Milestone 0 - Repository and environment
 
 Implement:
@@ -23,6 +27,14 @@ make test
 ```
 
 works on a clean supported environment.
+
+Cross-cutting supply-chain baseline (implemented from Milestone 0, not deferred to Milestone 10):
+
+- exact-pin direct/build dependencies and use the committed lock,
+- enforce approved sources, artifact SHA-256 records, lock schema/freshness, and a 72-hour release cooldown,
+- record host tool executable provenance,
+- provide CycloneDX SBOM and explicit online malware-check commands,
+- never install target dependencies or run target lifecycle scripts on the host.
 
 Doctor checks:
 
@@ -227,6 +239,9 @@ Add:
 - audit log,
 - report redaction,
 - runtime adapter documentation.
+
+The native dependency gate and harness SBOM already exist at this point. Milestone 10 extends them with signed
+release artifacts, automated advisory/license review, and reviewed digest-pinned scanner/verifier/runtime images.
 
 ## Definition of "usable"
 

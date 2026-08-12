@@ -1,0 +1,11 @@
+rules:
+  - id: whitebox.baseline.javascript-eval
+    message: Dynamic eval can execute attacker-controlled JavaScript.
+    severity: ERROR
+    languages: [javascript, typescript]
+    pattern: eval(...)
+  - id: whitebox.baseline.python-eval
+    message: Dynamic eval can execute attacker-controlled Python.
+    severity: ERROR
+    languages: [python]
+    pattern: eval(...)

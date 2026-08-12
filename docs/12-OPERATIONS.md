@@ -31,10 +31,15 @@ make prepare TARGET=/absolute/path/to/target
 Review:
 
 - target path,
-- commit/tree hash,
+- independent content fingerprint and Git commit/tree/dirty metadata,
 - languages,
 - manifests,
-- runtime adapter selected.
+- excluded directories and symlink inventory,
+- effective configuration (`network_allowed=false`, `target_execution_allowed=false`).
+
+Preparation rejects external/broken symlinks, nested mounts, special files, external Git worktree pointers, and
+unsafe Git metadata. Do not bypass these failures by moving the harness into the target or running target setup
+commands manually.
 
 ## Step 3 - Deterministic scan
 
@@ -43,6 +48,29 @@ make scan TARGET=/absolute/path/to/target
 ```
 
 Review scanner coverage.
+
+The current Semgrep adapter:
+
+- uses reviewed rules stored in this harness and never installs target dependencies,
+- stores raw SARIF, executable provenance, bounded/redacted logs, normalization counts, and Evidence under
+  `work/<run-id>/`,
+- exits 3 and records `skipped/degraded` when Semgrep is unavailable,
+- exits 5 for scanner execution failure and 6 for malformed SARIF,
+- requests offline Semgrep behavior but does not yet enforce network denial at the OS boundary,
+- compares target fingerprints after execution but does not yet mount the target read-only.
+
+For hostile real-world targets, treat the current host adapter as an MVP evidence collector, not an execution
+sandbox. Use only a trusted Semgrep installation and review `scanner-runs/semgrep/run.json`. Raw SARIF may contain
+sensitive source snippets and follows the same access/retention controls as other audit evidence.
+
+Existing SARIF can be attached to a prepared run without executing its producer:
+
+```bash
+whitebox-audit ingest-sarif \
+  --run-id RUN-YYYYMMDDTHHMMSSZ-012345abcdef \
+  --tool-name reviewed-tool \
+  --input /absolute/path/to/results.sarif
+```
 
 Do not treat scanner findings as the final report.
 

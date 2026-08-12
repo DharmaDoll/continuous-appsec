@@ -1,0 +1,7 @@
+{
+  "name": "benign-next-target",
+  "private": true,
+  "scripts": {
+    "build": "next build"
+  }
+}

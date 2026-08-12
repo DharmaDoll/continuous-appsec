@@ -1,0 +1,7 @@
+{
+  "name": "malicious-target-fixture",
+  "private": true,
+  "scripts": {
+    "postinstall": "touch ../TARGET_SCRIPT_EXECUTED"
+  }
+}

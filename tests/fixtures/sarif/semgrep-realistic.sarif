@@ -1,0 +1,37 @@
+{
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "Semgrep OSS",
+          "semanticVersion": "1.130.0",
+          "rules": [
+            {
+              "id": "whitebox.baseline.javascript-eval",
+              "defaultConfiguration": {"level": "error"}
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "whitebox.baseline.javascript-eval",
+          "message": {"text": "Dynamic eval can execute attacker-controlled JavaScript."},
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {"uri": "src/vulnerable.ts"},
+                "region": {
+                  "startLine": 2,
+                  "endLine": 2,
+                  "snippet": {"text": "return eval(input);"}
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

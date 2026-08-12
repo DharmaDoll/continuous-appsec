@@ -181,7 +181,9 @@ Do not make this project depend on product access or opaque behavior.
 
 ## SCA / dependency scanning
 
-Not the focus of the first version.
+Target-repository SCA is not the focus of the first version. This does not relax the audit harness's own native
+supply-chain baseline: exact pins, approved sources, lock/hash/freshness validation, dependency cooldown, tool
+provenance, and CycloneDX SBOM generation are mandatory from Milestone 0.
 
 If needed later, integrate existing outputs from:
 
