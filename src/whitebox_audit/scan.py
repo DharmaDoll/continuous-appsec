@@ -28,6 +28,7 @@ from whitebox_audit.prepare import (
     PrepareController,
     atomic_write_json,
     format_timestamp,
+    validate_artifact_reference,
     validate_run_id,
 )
 from whitebox_audit.sarif import load_sarif, normalize_sarif
@@ -144,7 +145,9 @@ def load_audit_run(run_directory: Path) -> AuditRun:
         raise WhiteboxAuditError("run record is invalid", ExitCode.DATA_INTEGRITY_ERROR) from error
 
 
-def _run_directory(harness_root: Path, run_id: str) -> Path:
+def resolve_run_directory(harness_root: Path, run_id: str) -> Path:
+    """Resolve a prepared run beneath the trusted harness work directory."""
+
     identifier = validate_run_id(run_id)
     work = (harness_root / "work").resolve(strict=True)
     candidate = work / identifier
@@ -175,7 +178,11 @@ def _update_run(run_directory: Path, run: AuditRun, status: RunStatus) -> None:
     )
 
 
-def _add_run_artifacts(run_directory: Path, run: AuditRun, references: tuple[str, ...]) -> None:
+def add_run_artifacts(run_directory: Path, run: AuditRun, references: tuple[str, ...]) -> None:
+    """Add validated run-relative artifact references without dropping prior entries."""
+
+    for reference in references:
+        validate_artifact_reference(reference)
     artifacts = tuple(dict.fromkeys((*run.artifacts, *references)))
     atomic_write_json(run_directory / "run.json", replace(run, artifacts=artifacts).to_dict())
 
@@ -227,7 +234,7 @@ class ScanController:
             target = prepared.target
         else:
             assert run_id is not None
-            run_directory = _run_directory(self._harness_root, run_id)
+            run_directory = resolve_run_directory(self._harness_root, run_id)
             run = load_audit_run(run_directory)
             target = load_target(run_directory)
             if run.status is not RunStatus.PREPARED:
@@ -272,7 +279,7 @@ def ingest_sarif(
         )
     ):
         raise WhiteboxAuditError("invalid tool name", ExitCode.INVALID_INPUT)
-    run_directory = _run_directory(harness_root, run_id)
+    run_directory = resolve_run_directory(harness_root, run_id)
     run = load_audit_run(run_directory)
     target = load_target(run_directory)
     try:
@@ -352,7 +359,7 @@ def ingest_sarif(
             "warnings": list(result.warnings),
         },
     )
-    _add_run_artifacts(
+    add_run_artifacts(
         run_directory,
         run,
         (

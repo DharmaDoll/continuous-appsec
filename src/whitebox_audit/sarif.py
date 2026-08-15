@@ -13,7 +13,10 @@ from whitebox_audit.errors import ExitCode, WhiteboxAuditError
 from whitebox_audit.models import (
     SCHEMA_VERSION,
     Evidence,
+    EvidenceConfidence,
+    EvidenceKind,
     EvidenceLocation,
+    EvidenceProvenance,
     SarifNormalizationResult,
 )
 
@@ -183,22 +186,27 @@ def normalize_sarif(
                 Evidence(
                     schema_version=SCHEMA_VERSION,
                     evidence_id=evidence_id,
-                    kind="static-analysis",
-                    tool_name=tool_name,
-                    tool_version=tool_version,
-                    rule_id=rule_id,
+                    kind=EvidenceKind.STATIC_ANALYSIS,
                     claim=claim,
-                    severity=_severity(result, rule),
                     location=EvidenceLocation(path, path_safe, start_line, end_line, snippet_hash),
+                    artifact_ref=result_raw_ref,
                     fingerprint=fingerprint,
                     content_hash=hashlib.sha256(
                         json.dumps(result, sort_keys=True).encode()
                     ).hexdigest(),
-                    confidence="deterministic-static",
+                    confidence=EvidenceConfidence.DETERMINISTIC_STATIC,
                     target_id=target_id,
                     target_tree_hash=target_tree_hash,
-                    provenance_run_id=scanner_run_id,
-                    raw_ref=result_raw_ref,
+                    provenance=EvidenceProvenance(
+                        source_type="static-analysis",
+                        run_id=scanner_run_id,
+                        raw_uri=result_raw_ref,
+                        tool_name=tool_name,
+                        tool_version=tool_version,
+                        rule_id=rule_id,
+                        target_tree_hash=target_tree_hash,
+                    ),
+                    severity=_severity(result, rule),
                 ),
             )
     return SarifNormalizationResult(

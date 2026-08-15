@@ -145,14 +145,14 @@ poc:
   shell: "whatever the agent wants"
 ```
 
-Preferred:
+The v1 interface is deliberately limited to an HTTP request action and an HTTP response oracle. The allowed
+response assertions should remain a small, schema-validated subset such as status, selected headers, bounded body,
+and JSON-path equality. v1 must reject browser steps, arbitrary SQL, file-system actions, process actions, and
+language-specific executable test bodies.
 
-- HTTP request DSL,
-- browser action DSL,
-- SQL assertion DSL against a test DB,
-- file-system assertion,
-- process exit/assertion,
-- language-specific test template with constrained imports.
+Browser, SQL assertion, file-system assertion, process assertion, and constrained language-specific templates are
+post-v1 candidates. Each requires its own threat-model and policy update before it can become an accepted action or
+oracle type.
 
 When arbitrary code is unavoidable:
 

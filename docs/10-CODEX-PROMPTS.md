@@ -89,6 +89,8 @@ Enforce the finding state model.
 Important:
 - an LLM cannot directly construct a Finding with status=verified,
 - only a valid VerificationResult(status=proved) can permit verified status,
+- SecurityInvariant must preserve declared/inferred derivation, origin, and supporting Evidence references,
+- inferred invariants cannot be serialized or reported as declared product requirements,
 - retain provenance and target fingerprint.
 
 Add unit tests for invalid state transitions.

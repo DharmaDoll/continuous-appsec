@@ -37,6 +37,7 @@ def test_realistic_sarif_normalizes_stable_evidence(tmp_path: Path) -> None:
     assert first == second
     assert len(first.evidence) == 1
     evidence = first.evidence[0]
+    assert evidence.location is not None
     assert evidence.evidence_id.startswith("EVD-")
     assert evidence.confidence == "deterministic-static"
     assert evidence.location.path == "src/vulnerable.ts"
@@ -51,6 +52,7 @@ def test_optional_fields_and_partial_parse_are_preserved(tmp_path: Path) -> None
     assert result.result_count == 2
     assert len(result.evidence) == 2
     assert len(result.warnings) == 1
+    assert result.evidence[0].location is not None
     assert result.evidence[0].location.path is None
 
 
@@ -63,6 +65,7 @@ def test_multiple_runs_deduplicate_and_quarantine_external_uri(tmp_path: Path) -
     assert len(result.evidence) == 2
     assert result.duplicate_count == 1
     external = next(item for item in result.evidence if item.rule_id == "rule.external")
+    assert external.location is not None
     assert external.location.path is not None
     assert external.location.path.startswith("external-uri:")
     assert external.location.path_safe is False

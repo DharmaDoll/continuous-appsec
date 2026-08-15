@@ -4,6 +4,25 @@
 
 Build a white-box audit harness where the LLM is a reasoning/navigation component, not the sole detector or verifier.
 
+## Product boundary
+
+This repository implements the **Whitebox Audit Engine**. It does not implement the surrounding Continuous AppSec
+control plane in v1.
+
+```text
+Future external orchestration
+  PR / CI / schedule / baseline comparison / finding lifecycle
+                              |
+                              | invokes audits and consumes canonical artifacts
+                              v
+Whitebox Audit Engine
+  Target -> Evidence -> Hypothesis -> Falsification -> Verifier -> Finding / Report
+```
+
+The engine owns the safety and evidentiary integrity of one audit run. A future orchestrator may compare run
+artifacts and manage `new` / `fixed` / `regressed` lifecycle state, but it must not weaken the engine's evidence
+model or grant the discovery agent verifier authority.
+
 ## Components
 
 ### A. Target Controller
@@ -111,6 +130,11 @@ Examples:
 id: INV-TENANT-INVOICE-READ
 scope:
   resource: Invoice
+source:
+  derivation: declared
+  origin: organization-policy
+source_evidence:
+  - EVD-POLICY-INVOICE-TENANCY
 statement: >
   A non-admin principal may read an invoice only when
   principal.tenant_id == invoice.tenant_id.
@@ -122,6 +146,8 @@ counterexample:
 ```
 
 Invariants are more useful than generic vulnerability categories because they describe what **must remain true**.
+Every invariant must distinguish a declared requirement from an expectation inferred from implementation evidence.
+An inferred invariant is a review hypothesis about intended behavior, not proof of the product's actual requirement.
 
 ### F. Agentic Navigator
 

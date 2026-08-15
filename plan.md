@@ -331,80 +331,82 @@ stub、未実行の scanner、未実行の PoC を完了として扱わない。
 
 ### M3.1 Canonical models
 
-- [ ] `SecurityInvariant` model を実装する。
-- [ ] `Evidence` model の全フィールドを仕様へ合わせる。
-- [ ] `Hypothesis` model を実装する。
-- [ ] CounterEvidence を Evidence の link role として実装する。
-- [ ] `VerificationCase` model の共通部分を実装する。
-- [ ] `VerificationResult` model を実装する。
-- [ ] `Finding` model を実装する。
-- [ ] 全 model に `schema_version` を持たせる。
-- [ ] relative path、symbol、line range、content hash を共通 location model にする。
-- [ ] provenance model を実装する。
-- [ ] redaction metadata model を実装する。
+- [x] `SecurityInvariant` model を実装する。
+- [x] Invariant の `source.derivation`（declared / inferred）、`source.origin`、`source_evidence` を検証する。
+- [x] inferred Invariant を declared requirement としてserialize/reportできない制約を追加する。
+- [x] `Evidence` model の全フィールドを仕様へ合わせる。
+- [x] `Hypothesis` model を実装する。
+- [x] CounterEvidence を Evidence の link role として実装する。
+- [x] `VerificationCase` model の共通部分を実装する。
+- [x] `VerificationResult` model を実装する。
+- [x] `Finding` model を実装する。
+- [x] 全 model に `schema_version` を持たせる。
+- [x] relative path、symbol、line range、content hash を共通 location model にする。
+- [x] provenance model を実装する。
+- [x] redaction metadata model を実装する。
 
 ### M3.2 Stable IDs と参照整合性
 
-- [ ] `INV-`、`HYP-`、`EVD-`、`VER-`、`FND-` の prefix を検証する。
-- [ ] normalized content から deterministic ID を生成する。
-- [ ] 時刻と絶対 host path を ID 入力から除外する。
-- [ ] foreign ID の存在確認を行う Evidence Store API を作成する。
-- [ ] target tree hash が異なる Evidence の混在を拒否または明示する。
-- [ ] duplicate Evidence の merge 規則を定義する。
-- [ ] object の immutable history または revision 方針を決定する。
+- [x] `INV-`、`HYP-`、`EVD-`、`VER-`、`FND-` の prefix を検証する。
+- [x] normalized content から deterministic ID を生成する。
+- [x] 時刻と絶対 host path を ID 入力から除外する。
+- [x] foreign ID の存在確認を行う Evidence Store API を作成する。
+- [x] target tree hash が異なる Evidence の混在を拒否または明示する。
+- [x] duplicate Evidence の merge 規則を定義する。
+- [x] object の immutable history または revision 方針を決定する。
 
 ### M3.3 Finding state machine
 
-- [ ] 7 status を enum として定義する。
-- [ ] 許可 transition を中央で管理する。
-- [ ] `hypothesis -> rejected` を実装する。
-- [ ] `hypothesis -> needs-verification` を実装する。
-- [ ] `needs-verification -> verified` に proved result を要求する。
-- [ ] `needs-verification -> high-confidence-static` に trace と反証を要求する。
-- [ ] `needs-verification -> rejected` を実装する。
-- [ ] `verified/high-confidence-static -> accepted-risk` を実装する。
-- [ ] `verified/high-confidence-static -> duplicate` を実装する。
-- [ ] Discovery/LLM origin からの direct verified construction を拒否する。
-- [ ] `not-proved` が一般的な安全証明にならないよう API 名と文書を整える。
+- [x] 7 status を enum として定義する。
+- [x] 許可 transition を中央で管理する。
+- [x] `hypothesis -> rejected` を実装する。
+- [x] `hypothesis -> needs-verification` を実装する。
+- [x] `needs-verification -> verified` に proved result を要求する。
+- [x] `needs-verification -> high-confidence-static` に trace と反証を要求する。
+- [x] `needs-verification -> rejected` を実装する。
+- [x] `verified/high-confidence-static -> accepted-risk` を実装する。
+- [x] `verified/high-confidence-static -> duplicate` を実装する。
+- [x] Discovery/LLM origin からの direct verified construction を拒否する。
+- [x] `not-proved` が一般的な安全証明にならないよう API 名と文書を整える。
 
 ### M3.4 Evidence Store
 
-- [ ] run-relative repository interface を定義する。
-- [ ] JSON と JSONL serializer を実装する。
-- [ ] atomic write と fsync 方針を決定する。
-- [ ] malformed record を行番号付きで報告する。
-- [ ] unknown schema version を拒否する。
-- [ ] evidence list/filter を実装する。
-- [ ] Evidence ID lookup を実装する。
-- [ ] Invariant list/lookup を実装する。
-- [ ] Hypothesis list/lookup を実装する。
+- [x] run-relative repository interface を定義する。
+- [x] JSON と JSONL serializer を実装する。
+- [x] atomic write と fsync 方針を決定する。
+- [x] malformed record を行番号付きで報告する。
+- [x] unknown schema version を拒否する。
+- [x] evidence list/filter を実装する。
+- [x] Evidence ID lookup を実装する。
+- [x] Invariant list/lookup を実装する。
+- [x] Hypothesis list/lookup を実装する。
 
 ### M3.5 Manual workflow CLI
 
-- [ ] `whitebox-audit invariant list` を実装する。
-- [ ] operator supplied Invariant の import を実装する。
-- [ ] `whitebox-audit hypothesis add --file <yaml-or-json>` を実装する。
-- [ ] required Hypothesis fields の欠落を拒否する。
-- [ ] supporting/counter Evidence の参照を検証する。
-- [ ] attacker、entry、path、falsification、verification plan を検証する。
-- [ ] `whitebox-audit evidence list` を実装する。
-- [ ] `whitebox-audit show-evidence <id>` を実装する。
-- [ ] human-readable と JSON 出力を提供する。
+- [x] `whitebox-audit invariant add/list --run-id <id>` を実装する。
+- [x] operator supplied Invariant と根拠資料を declared Invariant / Evidence としてimportする。
+- [x] `whitebox-audit hypothesis add/list --run-id <id> --file <yaml-or-json>` を実装する。
+- [x] required Hypothesis fields の欠落を拒否する。
+- [x] supporting/counter Evidence の参照を検証する。
+- [x] attacker、entry、path、falsification、verification plan を検証する。
+- [x] `whitebox-audit evidence list --run-id <id>` を実装する。
+- [x] `whitebox-audit show-evidence <id> --run-id <id>` を実装する。
+- [x] human-readable と JSON 出力を提供する。
 
 ### M3.6 Model test とゲート
 
-- [ ] 全 model の valid round-trip test を追加する。
-- [ ] unknown field rejection test を追加する。
-- [ ] invalid ID prefix test を追加する。
-- [ ] dangling Evidence reference test を追加する。
-- [ ] target fingerprint mismatch test を追加する。
-- [ ] invalid state transition test を追加する。
-- [ ] LLM origin が verified Finding を作れない test を追加する。
-- [ ] proved result ありの verified construction test を追加する。
-- [ ] stable ID reproduction test を追加する。
-- [ ] JSONL malformed line test を追加する。
-- [ ] formatter、linter、typecheck、unit/security test を実行する。
-- [ ] schema と例を仕様書へ同期する。
+- [x] 全 model の valid round-trip test を追加する。
+- [x] unknown field rejection test を追加する。
+- [x] invalid ID prefix test を追加する。
+- [x] dangling Evidence reference test を追加する。
+- [x] target fingerprint mismatch test を追加する。
+- [x] invalid state transition test を追加する。
+- [x] LLM origin が verified Finding を作れない test を追加する。
+- [x] proved result ありの verified construction test を追加する。
+- [x] stable ID reproduction test を追加する。
+- [x] JSONL malformed line test を追加する。
+- [x] formatter、linter、typecheck、unit/security test を実行する。
+- [x] schema と例を仕様書へ同期する。
 
 ## Milestone 4: Independent Verifier
 
@@ -557,7 +559,8 @@ stub、未実行の scanner、未実行の PoC を完了として扱わない。
 - [ ] ThreatScenario schema を定義する。
 - [ ] 3〜7 件の優先シナリオを保存できるようにする。
 - [ ] attacker、asset、trust boundary、hypothesis seed を検証する。
-- [ ] Invariant の source `inferred/policy/operator` を検証する。
+- [ ] Invariant の `source.derivation`、`source.origin`、`source_evidence` を検証する。
+- [ ] declared / inferred の区別をagent outputとreportまで保持する。
 - [ ] counterexample を必須とする。
 - [ ] organization policy directory を loader に接続する。
 - [ ] policy と target content を別 trust source として provenance に記録する。

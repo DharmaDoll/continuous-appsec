@@ -8,27 +8,38 @@ import pytest
 
 from whitebox_audit.errors import ExitCode, WhiteboxAuditError
 from whitebox_audit.evidence_store import write_evidence_jsonl
-from whitebox_audit.models import SCHEMA_VERSION, Evidence, EvidenceLocation
+from whitebox_audit.models import (
+    SCHEMA_VERSION,
+    Evidence,
+    EvidenceConfidence,
+    EvidenceKind,
+    EvidenceLocation,
+    EvidenceProvenance,
+)
 
 
 def _evidence(fingerprint: str = "f" * 64, tree_hash: str = "a" * 64) -> Evidence:
     return Evidence(
         schema_version=SCHEMA_VERSION,
         evidence_id=f"EVD-{fingerprint[:20]}",
-        kind="static-analysis",
-        tool_name="test",
-        tool_version="1",
-        rule_id="test.rule",
+        kind=EvidenceKind.STATIC_ANALYSIS,
         claim="test claim",
-        severity="warning",
         location=EvidenceLocation("src/app.ts", True, 1, 1, None),
+        artifact_ref="scanner-runs/test/result.sarif#runs/0/results/0",
         fingerprint=fingerprint,
         content_hash="c" * 64,
-        confidence="deterministic-static",
+        confidence=EvidenceConfidence.DETERMINISTIC_STATIC,
         target_id="TGT-0123456789abcdefabcd",
         target_tree_hash=tree_hash,
-        provenance_run_id="SCAN-0123456789abcdefabcd",
-        raw_ref="scanner-runs/test/result.sarif#runs/0/results/0",
+        provenance=EvidenceProvenance(
+            source_type="static-analysis",
+            run_id="SCAN-0123456789abcdefabcd",
+            raw_uri="scanner-runs/test/result.sarif#runs/0/results/0",
+            tool_name="test",
+            tool_version="1",
+            rule_id="test.rule",
+        ),
+        severity="warning",
     )
 
 

@@ -12,30 +12,65 @@ Every decision should be derivable from structured records.
 
 ```json
 {
-  "id": "INV-...",
+  "schema_version": 1,
+  "invariant_id": "INV-...",
+  "target_id": "TGT-...",
+  "target_tree_hash": "...",
   "title": "Tenant-owned invoice reads are scoped to trusted tenant context",
   "scope": ["invoice", "read"],
   "statement": "...",
-  "source": "inferred|policy|operator",
-  "confidence": "high"
+  "source": {
+    "derivation": "declared|inferred",
+    "origin": "operator|product-requirement|organization-policy|framework-contract|source-analysis"
+  },
+  "source_evidence": ["EVD-..."],
+  "confidence": "high",
+  "counterexample": {
+    "actor": "tenant-a-user",
+    "forbidden_effect": "tenant-b invoice returned"
+  }
 }
 ```
+
+`source.derivation` is the semantic boundary:
+
+- `declared` means an authorized requirement exists independently of the implementation under review,
+- `inferred` means the expected security property was derived from source, configuration, tests, or framework use.
+
+`source.origin` records where that declaration or inference came from. `source_evidence` links the exact Evidence
+records supporting it. Operator or policy material should be ingested as Evidence rather than copied into an
+untraceable prose field. Reports must preserve this provenance and must not relabel a high-confidence inferred
+invariant as declared.
 
 ### Evidence
 
 ```json
 {
-  "id": "EVD-...",
+  "schema_version": 1,
+  "evidence_id": "EVD-...",
   "kind": "source|static-analysis|runtime|config|test",
   "location": {
     "path": "src/invoice/repository.py",
     "start_line": 44,
     "end_line": 48,
-    "symbol": "get_invoice"
+    "symbol": "get_invoice",
+    "path_safe": true,
+    "snippet_hash": "..."
   },
   "claim": "Query filters by invoice id but not tenant id",
   "artifact_ref": "...",
-  "content_hash": "..."
+  "fingerprint": "...",
+  "content_hash": "...",
+  "confidence": "direct-source-trace",
+  "target_id": "TGT-...",
+  "target_tree_hash": "...",
+  "provenance": {
+    "source_type": "source-read",
+    "run_id": "RUN-...",
+    "raw_uri": "..."
+  },
+  "redactions": [],
+  "severity": null
 }
 ```
 
@@ -43,15 +78,48 @@ Every decision should be derivable from structured records.
 
 ```json
 {
-  "id": "HYP-...",
+  "schema_version": 1,
+  "hypothesis_id": "HYP-...",
+  "target_id": "TGT-...",
+  "target_tree_hash": "...",
   "invariant_id": "INV-...",
   "title": "Authenticated tenant user may read another tenant's invoice",
   "attacker_preconditions": [
     "valid low-privilege account",
     "knowledge/guess of another invoice id"
   ],
+  "entry_point": {
+    "path": "src/routes/invoices.ts",
+    "path_safe": true,
+    "start_line": 10,
+    "end_line": 20,
+    "snippet_hash": null,
+    "symbol": "getInvoice"
+  },
+  "suspected_path": [
+    {
+      "path": "src/routes/invoices.ts",
+      "path_safe": true,
+      "start_line": 10,
+      "end_line": 20,
+      "snippet_hash": null,
+      "symbol": "getInvoice"
+    }
+  ],
+  "files_symbols_to_inspect": [
+    {
+      "path": "src/invoice/repository.py",
+      "path_safe": true,
+      "start_line": 44,
+      "end_line": 48,
+      "snippet_hash": null,
+      "symbol": "get_invoice"
+    }
+  ],
   "supporting_evidence": ["EVD-1", "EVD-2"],
   "counter_evidence": [],
+  "falsification_conditions": ["upstream tenant authorization exists"],
+  "verification_plan": {"type": "http"},
   "status": "needs-verification"
 }
 ```
@@ -72,22 +140,34 @@ route cannot be reached by normal user
 
 Declarative request for independent execution.
 
+The serialized ID field is `verification_id`; the common Milestone 3 model also binds the case to `target_id`,
+`target_tree_hash`, and `hypothesis_id`. Protocol-specific validation belongs to the verifier milestone.
+
 ### VerificationResult
 
 Generated only by verifier.
+
+The result reuses the case `verification_id` and records the verifier run, target fingerprint, status,
+observations, oracle comparison, timestamps, verifier version, and policy fingerprint.
 
 ### Finding
 
 ```json
 {
-  "id": "FND-...",
+  "schema_version": 1,
+  "finding_id": "FND-...",
+  "target_tree_hash": "...",
   "hypothesis_id": "HYP-...",
+  "invariant_id": "INV-...",
   "status": "verified",
-  "severity": "high",
+  "title": "Cross-tenant invoice read",
+  "severity": {"level": "high", "reason": "cross-tenant confidentiality"},
   "cwe": ["CWE-639"],
   "verification_result_id": "VER-...",
   "evidence": ["EVD-..."],
-  "remediation": {...}
+  "record_origin": "verifier",
+  "remediation": {...},
+  "regression": {...}
 }
 ```
 

@@ -5,12 +5,13 @@
 | 項目 | 内容 |
 |---|---|
 | 製品名 | Whitebox AI Audit |
+| GitHub リポジトリ名 | `whitebox-ai-audit` |
 | CLI 名 | `whitebox-audit` |
 | Python パッケージ名 | `whitebox_audit` |
 | 文書種別 | アプリケーション詳細仕様書 |
-| 文書日付 | 2026-08-12 |
+| 文書日付 | 2026-08-15 |
 | 対象バージョン | 初期実装から v1 まで |
-| 現在の実装状態 | Milestone 0〜2完了。安全なtarget prepare、Semgrep/SARIF Evidence vertical slice、開発・テスト基盤を実装済み |
+| 現在の実装状態 | Milestone 0〜3完了。安全なtarget prepare、Semgrep/SARIF Evidence、canonical model、manual Invariant/Hypothesis workflowを実装済み |
 | 主要実装言語 | Python 3.12 以上 |
 
 本書は、既存の `README.md`、`AGENTS.md`、`docs/01-SETUP.md` から
@@ -55,6 +56,12 @@ Whitebox AI Audit は、監査対象リポジトリのソースコードを利�
 
 LLM は推論とナビゲーションを担当するが、単独で脆弱性を証明する権限を持たない。
 `verified` 判定は、独立した Verifier が機械的に観測可能な証拠を生成した場合にのみ許可する。
+
+本製品の責務は単一監査runの安全性、証拠完全性、および再現可能な成果物の生成である。
+PR/CI event、changed-lines analysis、定期実行、run間の `new` / `fixed` / `regressed` 管理、
+risk acceptance期限、dashboard、脆弱性管理は外部のContinuous AppSec Orchestratorの責務とし、v1には含めない。
+外部Orchestratorは本製品を呼び出して正規成果物を消費できるが、Evidence modelまたはVerifier境界を
+上書きしてはならない。
 
 ## 3. 目的と成功条件
 
@@ -111,6 +118,9 @@ v1 は、少なくとも次の条件をすべて満たした場合にのみ「�
 - すべての言語・フレームワークに対する CodeQL 自動ビルド
 - Web UI または常駐 SaaS。v1 はローカル CLI を主インターフェースとする
 - 複雑な自律マルチエージェントオーケストレーション
+- PR event、changed-lines analysis、定期実行を管理するContinuous AppSec Orchestrator
+- run間の `new` / `fixed` / `regressed` 状態、risk acceptance期限、dashboard、脆弱性管理
+- browser action、任意SQL、filesystem、process、任意コードを扱うVerifier DSL
 
 ## 5. 利用者と役割
 
@@ -270,7 +280,12 @@ trust boundary、想定される違反経路を持つ。
 ### 9.3 Phase 2: SecurityInvariant
 
 各重要シナリオを「常に成立すべき性質」へ変換する。Invariant には scope、statement、source、
-confidence、期待される安全動作、反例を含める。
+source_evidence、confidence、期待される安全動作、反例を含める。
+
+`source.derivation` は `declared` または `inferred` とする。`declared` は製品要件、組織policy、
+framework contract、権限を持つoperatorによる実装外の宣言を表し、`inferred` はsource、config、test、
+framework利用状況から導いた期待を表す。`source.origin` と根拠Evidenceを保存し、推論された期待を
+宣言済み製品要件として報告してはならない。confidenceが高くてもderivationは変更されない。
 
 代表例:
 
@@ -398,7 +413,9 @@ entry-to-sink trace、反証、再現、修正方針、回帰戦略を記録す�
 | FR-NAV-003 | source read は相対パスと有限の行範囲を要求または既定上限で制限する。 |
 | FR-NAV-004 | search は結果件数・読取り量を上限管理する。 |
 | FR-NAV-005 | Target のテキストを命令として処理しないことをエージェント契約に含める。 |
-| FR-HYP-001 | `hypothesis add --file <yaml-or-json>` でスキーマ検証済み Hypothesis を登録する。 |
+| FR-INV-001 | `invariant add --run-id <id> --file <yaml-or-json>` で根拠資料をEvidence化してInvariantを登録する。 |
+| FR-INV-002 | Invariantはdeclared/inferred、origin、source Evidenceを保持し、未知field・schemaを拒否する。 |
+| FR-HYP-001 | `hypothesis add --run-id <id> --file <yaml-or-json>` でスキーマ検証済み Hypothesis を登録する。 |
 | FR-HYP-002 | Invariant、attacker、entry point、path、support、falsification、verification plan の欠落を拒否する。 |
 | FR-HYP-003 | supporting Evidence と CounterEvidence の参照整合性を検証する。 |
 | FR-HYP-004 | rejected Hypothesis を履歴として保持する。 |
@@ -446,10 +463,12 @@ whitebox-audit map [--run-id <id>]
 whitebox-audit search <pattern> [--path <relative-path>] [--max-results <n>]
 whitebox-audit source <relative-path> --lines <start:end>
 whitebox-audit callers <symbol>
-whitebox-audit evidence list [--kind <kind>]
-whitebox-audit show-evidence <evidence-id>
-whitebox-audit invariant list
-whitebox-audit hypothesis add --file <yaml-or-json>
+whitebox-audit evidence list --run-id <id> [--kind <kind>]
+whitebox-audit show-evidence <evidence-id> --run-id <id>
+whitebox-audit invariant add --run-id <id> --file <yaml-or-json>
+whitebox-audit invariant list --run-id <id>
+whitebox-audit hypothesis add --run-id <id> --file <yaml-or-json>
+whitebox-audit hypothesis list --run-id <id>
 whitebox-audit verify [--run-id <id>] [--case <verification-id>]
 whitebox-audit report [--run-id <id>] [--format markdown|json|sarif]
 whitebox-audit patch --finding <finding-id>
@@ -597,11 +616,13 @@ hash は、対象 fingerprint、正規化済み path/symbol、Invariant、rule I
 
 | フィールド | 型 | 必須 | 説明 |
 |---|---|---|---|
-| id | INV ID | yes | 安定 ID |
+| invariant_id | INV ID | yes | 安定 ID |
+| target_id / target_tree_hash | string | yes | 対象runへの束縛 |
 | title | string | yes | 短い名称 |
 | scope | string[]/object | yes | resource、operation、tenant 等 |
 | statement | string | yes | 常に成立すべき性質 |
-| source | enum | yes | inferred / policy / operator |
+| source | object | yes | derivation（declared / inferred）とorigin |
+| source_evidence | EVD ID[] | yes | 宣言または推論の根拠。最低1件 |
 | confidence | enum | yes | low / medium / high |
 | counterexample | object | yes | actor、action、forbidden effect |
 
@@ -609,7 +630,7 @@ hash は、対象 fingerprint、正規化済み path/symbol、Invariant、rule I
 
 | フィールド | 型 | 必須 | 説明 |
 |---|---|---|---|
-| id | EVD ID | yes | 安定 ID |
+| evidence_id | EVD ID | yes | 安定 ID |
 | kind | enum | yes | source / static-analysis / runtime / config / test |
 | location | object/null | yes | relative path、line、symbol |
 | claim | string | yes | 当該 Evidence が直接支える事実 |
@@ -625,7 +646,8 @@ CounterEvidence は別種の真偽値ではなく Evidence を Hypothesis へ反
 
 | フィールド | 型 | 必須 | 説明 |
 |---|---|---|---|
-| id | HYP ID | yes | 安定 ID |
+| hypothesis_id | HYP ID | yes | 安定 ID |
+| target_id / target_tree_hash | string | yes | 対象runへの束縛 |
 | invariant_id | INV ID | yes | 対応 Invariant |
 | title | string | yes | 仮説名 |
 | attacker_preconditions | string[] | yes | 必要権限・知識・位置 |
@@ -645,7 +667,8 @@ v1 の HTTP DSL は次を持つ。
 | フィールド | 型 | 必須 | 説明 |
 |---|---|---|---|
 | schema_version | integer | yes | 初期値 1 |
-| id | VER ID | yes | case ID |
+| verification_id | VER ID | yes | case ID |
+| target_id / target_tree_hash | string | yes | 対象runへの束縛 |
 | hypothesis_id | HYP ID | yes | 対象仮説 |
 | runtime_profile | string | yes | レビュー済み adapter 名 |
 | setup | object | yes | 許可済み fixture / seed ID |
@@ -678,7 +701,8 @@ v1 の HTTP DSL は次を持つ。
 
 | フィールド | 型 | 必須 | 説明 |
 |---|---|---|---|
-| id | FND ID | yes | 安定 ID |
+| finding_id | FND ID | yes | 安定 ID |
+| target_tree_hash | string | yes | 対象runへの束縛 |
 | hypothesis_id | HYP ID | yes | 元仮説 |
 | status | enum | yes | 定義済み 7 状態 |
 | title | string | yes | Finding 名 |
@@ -692,6 +716,7 @@ v1 の HTTP DSL は次を持つ。
 | falsification_summary | object | yes | 調査した counter controls |
 | remediation | object | yes | 最小修正と注意点 |
 | regression | object | yes | 回帰方法 |
+| record_origin | enum | yes | operator / discovery-agent / verifier / reporter |
 
 ## 14. 状態モデル
 
@@ -748,7 +773,8 @@ work/<run-id>/
 │   │   └── stderr.log
 │   └── codeql/
 ├── evidence/
-│   └── evidence.jsonl
+│   ├── evidence.jsonl
+│   └── operator-inputs/
 ├── threat-model/
 │   └── scenarios.json
 ├── invariants/
@@ -868,6 +894,10 @@ adapter は image identity、health check、seed data、test identities、port�
 state mutation を明示する。
 
 ### 17.4 検証モード
+
+v1のVerificationCaseはHTTP request actionとHTTP response oracleだけを受理する。status、許可済みheader、
+bounded body、制限されたJSONPath比較以外のoracleは、個別のschema、sandbox policy、security testが
+定義されるまで拒否する。browser、SQL、filesystem、process、言語固有コード実行はpost-v1とする。
 
 | モード | 用途 | 許可される最終状態 |
 |---|---|---|
@@ -1127,7 +1157,7 @@ Evidence pipeline と Verifier が成立する前に、複雑な LLM orchestrati
 
 ## 26. 現在の実装状態
 
-2026-08-12 時点で、Milestone 0〜2として次を実装済みである。
+2026-08-15 時点で、Milestone 0〜3として次を実装済みである。
 
 - Python 3.12+ package、`whitebox-audit` CLI、`doctor` / `supply-chain check` command
 - human-readable / JSON capability report と安定した終了コード
@@ -1141,17 +1171,21 @@ Evidence pipeline と Verifier が成立する前に、複雑な LLM orchestrati
 - `Scanner` abstraction、Semgrep adapter、raw SARIFとscanner実行metadata
 - defensive SARIF parser、stable Evidence ID/fingerprint、atomic/deduplicating JSONL store
 - `scan` / `ingest-sarif` CLI、fake scannerによる成功/失敗/timeout/改変検知fixture
-- ADR、要件トレーサビリティ、Milestone 0〜2実行結果
-- 70件のunit/integration/security test
+- SecurityInvariant、Hypothesis、VerificationCase、VerificationResult、Finding canonical model
+- declared/inferred Invariant provenance、stable ID、target/reference integrity、Finding state machine
+- strict JSON/YAML input、operator input原文保存とEvidence化、immutable JSONL repository
+- `invariant add/list`、`hypothesis add/list`、`evidence list`、`show-evidence` CLI
+- ADR、要件トレーサビリティ、Milestone 0〜3実行結果
+- 80件以上のunit/integration/security test
 
 次は未実装である。
 
 - CodeQL adapter
-- Evidence以外のcanonical modelとmanual Hypothesis workflow
 - Next.js / PostgreSQL fixtureとVerifier image / controller / DSL
-- Reporter、patch workflow、evaluation harness
+- VerificationCase/Resultの実行・永続化、Finding永続化
+- Agent navigation、Reporter、patch workflow、evaluation harness
 
-`hypothesis`、Verifier、agent navigation、report、patch系CLIは現時点では実装目標および受入仕様である。
+Verifier、agent navigation、report、patch系CLIは現時点では実装目標および受入仕様である。
 Semgrep実行は現在host adapterであり、OS-level network deny/read-only mountは未実装である。
 
 ## 27. 未決定事項
@@ -1159,7 +1193,7 @@ Semgrep実行は現在host adapterであり、OS-level network deny/read-only mo
 以下は実装時に ADR または設定スキーマで確定する。安全側の既定値を維持する限り、Milestone 0～2
 の開始を妨げない。
 
-1. Milestone 3以降の外部schema validationにPydanticを追加するか
+1. Milestone 4以降の外部schema validationにPydanticを追加するか（Milestone 3はdataclassとstrict parser）
 2. JSONL record の厳密な migration mechanism
 3. 非 Git 対象の tree fingerprint で除外するファイルと symlink の扱い
 4. run status と object state transition の永続 audit log 形式

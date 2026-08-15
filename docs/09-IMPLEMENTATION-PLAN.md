@@ -2,9 +2,13 @@
 
 Build vertically. Do not start by implementing a sophisticated multi-agent system.
 
-Implementation status on 2026-08-12: Milestones 0 through 2 are complete. Milestone 3 is next. See `plan.md`
+This plan implements the Whitebox Audit Engine. PR/schedule orchestration, changed-lines analysis, cross-run finding
+lifecycle, and vulnerability-management workflows are outside v1 and must not displace the evidence pipeline and
+independent verifier milestones.
+
+Implementation status on 2026-08-15: Milestones 0 through 3 are complete. Milestone 4 is next. See `plan.md`
 for the executable checklist and `docs/16-MILESTONE-0-RESULTS.md` through
-`docs/18-MILESTONE-2-RESULTS.md` for verified coverage and limitations.
+`docs/19-MILESTONE-3-RESULTS.md` for verified coverage and limitations.
 
 ## Milestone 0 - Repository and environment
 
@@ -98,11 +102,17 @@ Implement data objects from `docs/06-EVIDENCE-MODEL.md`.
 Add:
 
 ```bash
-whitebox-audit hypothesis add --file case.yaml
-whitebox-audit evidence list
+whitebox-audit invariant add --run-id RUN-... --file invariant.yaml
+whitebox-audit invariant list --run-id RUN-...
+whitebox-audit hypothesis add --run-id RUN-... --file case.yaml
+whitebox-audit hypothesis list --run-id RUN-...
+whitebox-audit evidence list --run-id RUN-...
+whitebox-audit show-evidence EVD-... --run-id RUN-...
 ```
 
-This temporarily allows a human-created hypothesis so the verifier can be developed before Codex orchestration.
+This allows a human-created, schema-validated hypothesis so the verifier can be developed before Codex
+orchestration. Operator invariant input is preserved as a run artifact and normalized into source Evidence before
+the invariant is accepted.
 
 ## Milestone 4 - Independent verifier
 

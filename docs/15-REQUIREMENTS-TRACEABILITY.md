@@ -34,3 +34,9 @@ This table links the first implementation milestone to executable checks. It wil
 | SEC-005/008/015 | minimal env, argument arrays, redaction | fake scanner argv/log tests |
 | SEC-003 | no target lifecycle execution | scanner adapter command review and fixture tests |
 | SEC-007 | target mutation detection | malicious fake scanner mutation test |
+| FR-INV-001/002 | `RunRecordStore.add_invariant_document`, strict JSON/YAML loader | operator Evidence, unknown field/schema, duplicate key/tag/symlink tests |
+| FR-HYP-001/002/003 | `RunRecordStore.add_hypothesis_document` | required field, dangling/cross-role Evidence, CLI workflow tests |
+| FR-HYP-004 | immutable content-derived IDs and append-only JSONL policy | repeat import and collision/revision tests |
+| FR-NAV-001 (`show-evidence`) | `evidence list`, `show-evidence`, invariant/hypothesis list CLI | human/JSON CLI integration tests |
+| FR-FND-001/002/003 | `FindingStatus`, `transition_finding` | invalid transition, not-proved, proved, static-trace gate tests |
+| SEC-009 | strict relative `EvidenceLocation` and run confinement | absolute path, symlink input, target fingerprint mismatch tests |

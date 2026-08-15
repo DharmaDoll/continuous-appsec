@@ -12,8 +12,15 @@ from typing import TextIO
 from whitebox_audit import __version__
 from whitebox_audit.doctor import Doctor, DoctorReport, Health, ToolCapability, redact_output
 from whitebox_audit.errors import ExitCode, WhiteboxAuditError
-from whitebox_audit.models import PrepareResult
+from whitebox_audit.models import (
+    Evidence,
+    EvidenceKind,
+    Hypothesis,
+    PrepareResult,
+    SecurityInvariant,
+)
 from whitebox_audit.prepare import PrepareController, discover_harness_root
+from whitebox_audit.record_store import RunRecordStore, load_record_document
 from whitebox_audit.scan import ScanController, ScanResult, ingest_sarif
 from whitebox_audit.supply_chain import (
     SupplyChainReport,
@@ -91,6 +98,42 @@ def build_parser() -> argparse.ArgumentParser:
     ingest.add_argument("--tool-name", required=True, help="SARIF producer name")
     ingest.add_argument("--input", required=True, help="SARIF input file")
     ingest.add_argument("--format", choices=("human", "json"), default="human")
+
+    evidence = subparsers.add_parser("evidence", help="inspect canonical evidence records")
+    evidence_subparsers = evidence.add_subparsers(dest="evidence_command", required=True)
+    evidence_list = evidence_subparsers.add_parser("list", help="list evidence for a run")
+    evidence_list.add_argument("--run-id", required=True)
+    evidence_list.add_argument("--kind", choices=tuple(item.value for item in EvidenceKind))
+    evidence_list.add_argument("--format", choices=("human", "json"), default="human")
+
+    show_evidence = subparsers.add_parser("show-evidence", help="show one evidence record")
+    show_evidence.add_argument("evidence_id")
+    show_evidence.add_argument("--run-id", required=True)
+    show_evidence.add_argument("--format", choices=("human", "json"), default="human")
+
+    invariant = subparsers.add_parser("invariant", help="manage security invariants")
+    invariant_subparsers = invariant.add_subparsers(dest="invariant_command", required=True)
+    invariant_add = invariant_subparsers.add_parser(
+        "add", help="import a declared/inferred invariant and its source evidence"
+    )
+    invariant_add.add_argument("--run-id", required=True)
+    invariant_add.add_argument("--file", required=True)
+    invariant_add.add_argument("--format", choices=("human", "json"), default="human")
+    invariant_list = invariant_subparsers.add_parser("list", help="list invariants for a run")
+    invariant_list.add_argument("--run-id", required=True)
+    invariant_list.add_argument("--format", choices=("human", "json"), default="human")
+
+    hypothesis = subparsers.add_parser("hypothesis", help="manage vulnerability hypotheses")
+    hypothesis_subparsers = hypothesis.add_subparsers(dest="hypothesis_command", required=True)
+    hypothesis_add = hypothesis_subparsers.add_parser(
+        "add", help="validate and persist a manual hypothesis"
+    )
+    hypothesis_add.add_argument("--run-id", required=True)
+    hypothesis_add.add_argument("--file", required=True)
+    hypothesis_add.add_argument("--format", choices=("human", "json"), default="human")
+    hypothesis_list = hypothesis_subparsers.add_parser("list", help="list hypotheses for a run")
+    hypothesis_list.add_argument("--run-id", required=True)
+    hypothesis_list.add_argument("--format", choices=("human", "json"), default="human")
     return parser
 
 
@@ -155,6 +198,30 @@ def render_scan_human(result: ScanResult) -> str:
             f"Run directory: {result.run_directory}",
         )
     )
+
+
+def render_evidence_human(records: Sequence[Evidence]) -> str:
+    if not records:
+        return "No evidence records."
+    return "\n".join(f"{item.evidence_id} [{item.kind}] {item.claim}" for item in records)
+
+
+def render_invariants_human(records: Sequence[SecurityInvariant]) -> str:
+    if not records:
+        return "No invariant records."
+    return "\n".join(
+        f"{item.invariant_id} [{item.source.derivation}] {item.title}" for item in records
+    )
+
+
+def render_hypotheses_human(records: Sequence[Hypothesis]) -> str:
+    if not records:
+        return "No hypothesis records."
+    return "\n".join(f"{item.hypothesis_id} [{item.status}] {item.title}" for item in records)
+
+
+def _record_error(error: TypeError | ValueError) -> WhiteboxAuditError:
+    return WhiteboxAuditError(f"invalid canonical record: {error}", ExitCode.INVALID_INPUT)
 
 
 def run(
@@ -230,6 +297,76 @@ def run(
                 out.write("\n")
             else:
                 out.write(f"Ingested evidence: {len(evidence)}\n")
+            return int(ExitCode.OK)
+        if args.command == "evidence" and args.evidence_command == "list":
+            root = discover_harness_root(Path.cwd()) if harness_root is None else harness_root
+            store = RunRecordStore(root, args.run_id)
+            kind = EvidenceKind(args.kind) if args.kind is not None else None
+            evidence_records = store.list_evidence(kind=kind)
+            if args.format == "json":
+                json.dump(
+                    [item.to_dict() for item in evidence_records], out, indent=2, sort_keys=True
+                )
+                out.write("\n")
+            else:
+                out.write(render_evidence_human(evidence_records) + "\n")
+            return int(ExitCode.OK)
+        if args.command == "show-evidence":
+            root = discover_harness_root(Path.cwd()) if harness_root is None else harness_root
+            record = RunRecordStore(root, args.run_id).get_evidence(args.evidence_id)
+            if args.format == "json":
+                json.dump(record.to_dict(), out, indent=2, sort_keys=True)
+                out.write("\n")
+            else:
+                out.write(render_evidence_human((record,)) + "\n")
+            return int(ExitCode.OK)
+        if args.command == "invariant":
+            root = discover_harness_root(Path.cwd()) if harness_root is None else harness_root
+            store = RunRecordStore(root, args.run_id)
+            if args.invariant_command == "add":
+                document, raw, suffix = load_record_document(Path(args.file))
+                try:
+                    invariant_record = store.add_invariant_document(
+                        document, raw=raw, suffix=suffix
+                    )
+                except (TypeError, ValueError) as error:
+                    raise _record_error(error) from error
+                invariant_records: tuple[SecurityInvariant, ...] = (invariant_record,)
+            else:
+                invariant_records = store.list_invariants()
+            if args.format == "json":
+                payload: object = (
+                    invariant_records[0].to_dict()
+                    if args.invariant_command == "add"
+                    else [item.to_dict() for item in invariant_records]
+                )
+                json.dump(payload, out, indent=2, sort_keys=True)
+                out.write("\n")
+            else:
+                out.write(render_invariants_human(invariant_records) + "\n")
+            return int(ExitCode.OK)
+        if args.command == "hypothesis":
+            root = discover_harness_root(Path.cwd()) if harness_root is None else harness_root
+            store = RunRecordStore(root, args.run_id)
+            if args.hypothesis_command == "add":
+                document, _raw, _suffix = load_record_document(Path(args.file))
+                try:
+                    hypothesis_record = store.add_hypothesis_document(document)
+                except (TypeError, ValueError) as error:
+                    raise _record_error(error) from error
+                hypothesis_records: tuple[Hypothesis, ...] = (hypothesis_record,)
+            else:
+                hypothesis_records = store.list_hypotheses()
+            if args.format == "json":
+                payload = (
+                    hypothesis_records[0].to_dict()
+                    if args.hypothesis_command == "add"
+                    else [item.to_dict() for item in hypothesis_records]
+                )
+                json.dump(payload, out, indent=2, sort_keys=True)
+                out.write("\n")
+            else:
+                out.write(render_hypotheses_human(hypothesis_records) + "\n")
             return int(ExitCode.OK)
         raise WhiteboxAuditError("unknown command", ExitCode.INVALID_INPUT)
     except WhiteboxAuditError as error:

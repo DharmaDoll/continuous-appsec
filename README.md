@@ -2,6 +2,17 @@
 
 > Evidence-driven, reproducible AppSec white-box auditing with deterministic scanners, Codex agentic navigation, falsification, and independent verification.
 
+## Product boundary
+
+Whitebox AI Audit is a white-box audit engine, not a general Continuous AppSec platform. Its responsibility ends
+at reproducible audit artifacts: canonical evidence, hypotheses, verification results, findings, reports, and
+regression material.
+
+PR event handling, changed-lines analysis, scheduled execution, cross-run `new` / `fixed` / `regressed` state,
+risk-acceptance expiry, dashboards, and vulnerability-management workflows belong to an external orchestration
+layer. That layer may consume this engine's structured outputs after the audit pipeline is proven; it is not part
+of v1.
+
 ## Status
 
 This repository specification is intended to become a **usable internal AppSec audit harness**, not a research demo.
@@ -18,7 +29,7 @@ The implementation must optimize for:
 
 ### Current implementation
 
-Milestones 0 through 2 are implemented as an executable, safety-first foundation:
+Milestones 0 through 3 are implemented as an executable, safety-first foundation:
 
 - Python 3.12+ package and `whitebox-audit` CLI,
 - non-destructive `whitebox-audit doctor` capability checks,
@@ -32,9 +43,14 @@ Milestones 0 through 2 are implemented as an executable, safety-first foundation
   atomic run metadata persistence,
 - Semgrep scanner execution with explicit states and executable provenance,
 - defensive SARIF normalization into atomic, deduplicated Evidence JSONL,
-- operator-supplied SARIF ingestion through the same evidence path.
+- operator-supplied SARIF ingestion through the same evidence path,
+- canonical SecurityInvariant, Hypothesis, VerificationCase, VerificationResult, and Finding models,
+- stable content-derived IDs, target/reference integrity, and the seven-state Finding transition policy,
+- strict JSON/YAML manual Invariant/Hypothesis import with preserved operator-source Evidence,
+- run-relative Evidence/Invariant/Hypothesis repositories and human/JSON inspection commands.
 
-CodeQL execution, hypothesis orchestration, Verifier execution, and report generation are not implemented yet.
+CodeQL execution, agent-driven hypothesis orchestration, Verifier execution, Finding persistence, and report
+generation are not implemented yet.
 Semgrep is not auto-installed; an unavailable executable produces a recorded `skipped` scanner run and a
 `degraded` audit run. The current host adapter detects target mutation after execution but does not yet enforce a
 read-only mount or OS-level network denial. See [`ADR 0008`](docs/adr/0008-semgrep-evidence-boundary.md).

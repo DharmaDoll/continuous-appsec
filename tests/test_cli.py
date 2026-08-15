@@ -29,6 +29,10 @@ def test_module_help() -> None:
     assert "prepare" in completed.stdout
     assert "scan" in completed.stdout
     assert "ingest-sarif" in completed.stdout
+    assert "evidence" in completed.stdout
+    assert "invariant" in completed.stdout
+    assert "hypothesis" in completed.stdout
+    assert "show-evidence" in completed.stdout
     assert completed.stderr == ""
 
 
@@ -48,6 +52,9 @@ def test_installed_console_script_help() -> None:
     assert "prepare" in completed.stdout
     assert "scan" in completed.stdout
     assert "ingest-sarif" in completed.stdout
+    assert "evidence" in completed.stdout
+    assert "invariant" in completed.stdout
+    assert "hypothesis" in completed.stdout
     assert completed.stderr == ""
 
 

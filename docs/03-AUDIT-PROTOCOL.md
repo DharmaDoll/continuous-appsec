@@ -57,9 +57,16 @@ hypothesis:
   Invoice retrieval may use invoice_id without tenant scoping.
 ```
 
-## Phase 2 - Security Invariant Inference
+## Phase 2 - Security Invariant Definition and Provenance
 
-Convert each important threat into a statement that must hold.
+Convert each important threat into a statement that must hold. An invariant is either:
+
+- **declared**: supplied by a product requirement, organization policy, framework contract, or authorized operator,
+- **inferred**: derived from focused source/config/test evidence when no authoritative declaration is available.
+
+Store the derivation, origin, confidence category, and supporting Evidence references with the invariant. Do not
+present an inferred invariant as a declared product requirement. Confidence describes support for the inference;
+it does not change its provenance.
 
 Examples:
 
@@ -89,7 +96,8 @@ Direct CREATED -> CAPTURED is forbidden unless a documented privileged path exis
 A reset token must be single-use, time-bounded, and bound to the intended account/action.
 ```
 
-Store invariants as machine-readable records.
+Store invariants as machine-readable records. Declared requirements and inferred expectations may support the same
+hypothesis, but reports must preserve the distinction.
 
 ## Phase 3 - Deterministic Evidence Collection
 
