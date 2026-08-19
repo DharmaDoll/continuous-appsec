@@ -208,17 +208,21 @@ A case should state:
 setup:
   fixture: tenant-isolation-demo
 actor:
-  identity: tenant_a_user
+  identity: tenant-a-user
 action:
   protocol: http
-  request:
-    method: GET
-    path: /api/invoices/tenant-b-id
+  method: GET
+  path: /api/invoices/tenant-b-id
+  headers:
+    Authorization: "${fixture.token.tenant-a-user}"
 oracle:
-  forbidden_if:
-    status: 200
-    response_json_path: $.tenant_id
-    equals: tenant-b
+  forbidden_status: 200
+  json_assertions:
+    - path: $.tenant_id
+      equals: tenant-b
+limits:
+  timeout_seconds: 30
+  max_response_body_bytes: 262144
 ```
 
 The verifier, not the discovery agent, decides pass/fail.

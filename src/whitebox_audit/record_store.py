@@ -31,12 +31,22 @@ from whitebox_audit.models import (
     InvariantSource,
     Redaction,
     SecurityInvariant,
+    VerificationCase,
 )
 from whitebox_audit.scan import (
     add_run_artifacts,
     load_audit_run,
     load_target,
     resolve_run_directory,
+)
+from whitebox_audit.verifier import (
+    RuntimeAdapter,
+    VerifierPolicy,
+    create_http_verification_case,
+    parse_runtime_adapter,
+    parse_stored_verification_case,
+    parse_verifier_policy,
+    verification_case_references,
 )
 
 MAX_INPUT_BYTES: Final[int] = 1024 * 1024
@@ -595,7 +605,7 @@ def _parse_hypothesis(value: Mapping[str, object]) -> Hypothesis:
 
 
 class RunRecordStore:
-    """Run-confined immutable repository for evidence, invariants, and hypotheses."""
+    """Run-confined immutable repository for canonical audit records."""
 
     def __init__(self, harness_root: Path, run_id: str) -> None:
         self.run_directory = resolve_run_directory(harness_root, run_id)
@@ -604,6 +614,7 @@ class RunRecordStore:
         self.evidence_path = self.run_directory / "evidence" / "evidence.jsonl"
         self.invariant_path = self.run_directory / "invariants" / "invariants.jsonl"
         self.hypothesis_path = self.run_directory / "hypotheses" / "hypotheses.jsonl"
+        self.verification_case_path = self.run_directory / "verification" / "cases.jsonl"
 
     def list_evidence(self, *, kind: EvidenceKind | None = None) -> tuple[Evidence, ...]:
         records = _read_jsonl(self.evidence_path, _evidence_from_record)
@@ -685,6 +696,69 @@ class RunRecordStore:
         matches = [item for item in self.list_hypotheses() if item.hypothesis_id == hypothesis_id]
         if len(matches) != 1:
             raise WhiteboxAuditError("hypothesis ID was not found uniquely", ExitCode.INVALID_INPUT)
+        return matches[0]
+
+    def _load_verifier_policy(self, fingerprint: str) -> VerifierPolicy:
+        path = self.run_directory / "verification" / "policies" / f"{fingerprint}.json"
+        try:
+            document, _raw, _suffix = load_record_document(path)
+            policy = parse_verifier_policy(document)
+        except (TypeError, ValueError, WhiteboxAuditError) as error:
+            raise ValueError("verification case references an invalid policy artifact") from error
+        if policy.fingerprint != fingerprint:
+            raise ValueError("verifier policy artifact fingerprint mismatch")
+        return policy
+
+    def _load_runtime_adapter(self, fingerprint: str, policy: VerifierPolicy) -> RuntimeAdapter:
+        path = self.run_directory / "verification" / "adapters" / f"{fingerprint}.json"
+        try:
+            document, _raw, _suffix = load_record_document(path)
+            adapter = parse_runtime_adapter(document, policy)
+        except (TypeError, ValueError, WhiteboxAuditError) as error:
+            raise ValueError("verification case references an invalid adapter artifact") from error
+        if adapter.fingerprint != fingerprint:
+            raise ValueError("runtime adapter artifact fingerprint mismatch")
+        return adapter
+
+    def list_verification_cases(self) -> tuple[VerificationCase, ...]:
+        def parse(value: Mapping[str, object]) -> VerificationCase:
+            policy_ref, adapter_ref = verification_case_references(value)
+            policy = self._load_verifier_policy(policy_ref)
+            adapter = self._load_runtime_adapter(adapter_ref, policy)
+            return parse_stored_verification_case(value, policy=policy, adapter=adapter)
+
+        records = _read_jsonl(self.verification_case_path, parse)
+        for record in records:
+            if (
+                record.target_id != self.target.target_id
+                or record.target_tree_hash != self.target.tree_hash
+            ):
+                raise WhiteboxAuditError(
+                    "verification case target fingerprint does not match the run",
+                    ExitCode.DATA_INTEGRITY_ERROR,
+                )
+        _require_unique_identifiers(
+            [record.verification_id for record in records], "verification case JSONL"
+        )
+        hypotheses = {item.hypothesis_id for item in self.list_hypotheses()}
+        for record in records:
+            if record.hypothesis_id not in hypotheses:
+                raise WhiteboxAuditError(
+                    "verification case references a missing hypothesis",
+                    ExitCode.DATA_INTEGRITY_ERROR,
+                )
+        return records
+
+    def get_verification_case(self, verification_id: str) -> VerificationCase:
+        matches = [
+            item
+            for item in self.list_verification_cases()
+            if item.verification_id == verification_id
+        ]
+        if len(matches) != 1:
+            raise WhiteboxAuditError(
+                "verification case ID was not found uniquely", ExitCode.INVALID_INPUT
+            )
         return matches[0]
 
     def add_invariant_document(
@@ -914,6 +988,43 @@ class RunRecordStore:
         )
         return hypothesis
 
+    def add_verification_case_document(
+        self,
+        document: Mapping[str, object],
+        *,
+        policy: VerifierPolicy,
+        adapter: RuntimeAdapter,
+    ) -> VerificationCase:
+        hypothesis_id = _string(document.get("hypothesis_id"), "hypothesis_id")
+        hypothesis = self.get_hypothesis(hypothesis_id)
+        if hypothesis.verification_plan.get("type") != "http":
+            raise ValueError("hypothesis verification plan is not HTTP")
+        case = create_http_verification_case(
+            document,
+            target_id=self.target.target_id,
+            target_tree_hash=self.target.tree_hash,
+            policy=policy,
+            adapter=adapter,
+        )
+        policy_ref = f"verification/policies/{policy.fingerprint}.json"
+        adapter_ref = f"verification/adapters/{adapter.fingerprint}.json"
+        _persist_canonical_document(self.run_directory / policy_ref, policy.to_dict())
+        _persist_canonical_document(self.run_directory / adapter_ref, adapter.to_dict())
+        existing = self.list_verification_cases()
+        _persist_immutable(
+            self.verification_case_path,
+            existing,
+            case,
+            identifier=lambda item: item.verification_id,
+            serialize=lambda item: item.to_dict(),
+        )
+        add_run_artifacts(
+            self.run_directory,
+            load_audit_run(self.run_directory),
+            (policy_ref, adapter_ref, "verification/cases.jsonl"),
+        )
+        return case
+
 
 def _atomic_write_bytes(path: Path, data: bytes) -> None:
     temporary = path.with_name(f".{path.name}.tmp-{secrets.token_hex(6)}")
@@ -929,10 +1040,31 @@ def _atomic_write_bytes(path: Path, data: bytes) -> None:
         _fsync_directory(path.parent)
     except OSError as error:
         raise WhiteboxAuditError(
-            "could not persist operator input atomically", ExitCode.DATA_INTEGRITY_ERROR
+            "could not persist artifact atomically", ExitCode.DATA_INTEGRITY_ERROR
         ) from error
     finally:
         if descriptor is not None:
             os.close(descriptor)
         with suppress(OSError):
             temporary.unlink(missing_ok=True)
+
+
+def _persist_canonical_document(path: Path, document: Mapping[str, object]) -> None:
+    data = (
+        json.dumps(
+            document,
+            allow_nan=False,
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n"
+    ).encode()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        if path.is_symlink() or not path.is_file() or path.read_bytes() != data:
+            raise WhiteboxAuditError(
+                "canonical artifact collision rejected", ExitCode.DATA_INTEGRITY_ERROR
+            )
+        return
+    _atomic_write_bytes(path, data)

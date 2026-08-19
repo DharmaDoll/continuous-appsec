@@ -11,7 +11,7 @@
 | 文書種別 | アプリケーション詳細仕様書 |
 | 文書日付 | 2026-08-15 |
 | 対象バージョン | 初期実装から v1 まで |
-| 現在の実装状態 | Milestone 0〜3完了。安全なtarget prepare、Semgrep/SARIF Evidence、canonical model、manual Invariant/Hypothesis workflowを実装済み |
+| 現在の実装状態 | Milestone 0〜3完了。Milestone 4のVerifier policy、reviewed adapter schema、HTTP DSL、VerificationCase永続化まで実装済み |
 | 主要実装言語 | Python 3.12 以上 |
 
 本書は、既存の `README.md`、`AGENTS.md`、`docs/01-SETUP.md` から
@@ -435,6 +435,8 @@ entry-to-sink trace、反証、再現、修正方針、回帰戦略を記録す�
 | FR-VER-009 | observation、oracle comparison、artifact hash、logs を VerificationResult に保存する。 |
 | FR-VER-010 | `status=proved` は Verifier のみが生成可能とする。 |
 | FR-VER-011 | destructive、production-reaching、policy-violating な動作を検出した場合は停止し、最小限の証拠を保持する。 |
+| FR-VER-012 | Verifier policyは未知fieldと安全制約の緩和を拒否し、case limitはpolicy上限を超えられない。 |
+| FR-VER-013 | canonical case、policy、adapterをfingerprintで束縛し、run-relative artifactとして保存する。 |
 
 ### 10.6 Finding、レポート、パッチ
 
@@ -469,6 +471,8 @@ whitebox-audit invariant add --run-id <id> --file <yaml-or-json>
 whitebox-audit invariant list --run-id <id>
 whitebox-audit hypothesis add --run-id <id> --file <yaml-or-json>
 whitebox-audit hypothesis list --run-id <id>
+whitebox-audit verification-case add --run-id <id> --file <yaml-or-json> --adapter <yaml-or-json> [--policy <yaml-or-json>]
+whitebox-audit verification-case list --run-id <id>
 whitebox-audit verify [--run-id <id>] [--case <verification-id>]
 whitebox-audit report [--run-id <id>] [--format markdown|json|sarif]
 whitebox-audit patch --finding <finding-id>
@@ -670,15 +674,18 @@ v1 の HTTP DSL は次を持つ。
 | verification_id | VER ID | yes | case ID |
 | target_id / target_tree_hash | string | yes | 対象runへの束縛 |
 | hypothesis_id | HYP ID | yes | 対象仮説 |
+| policy_fingerprint | SHA-256 | yes | import時に固定したVerifier policy |
+| adapter_fingerprint | SHA-256 | yes | import時に固定したreviewed adapter |
 | runtime_profile | string | yes | レビュー済み adapter 名 |
+| runtime_image | digest reference | yes | mutable tagを許さないruntime image identity |
 | setup | object | yes | 許可済み fixture / seed ID |
 | actor | object | yes | fixture 上の identity |
 | action | object | yes | protocol、method、path、許可済み header/body |
 | oracle | object | yes | expected secure behavior と forbidden condition |
 | limits | object | yes | timeout 等。ポリシー上限を超えられない |
 
-テンプレート変数は fixture が公開する値だけを参照できる。環境変数、host path、任意 command への
-展開を禁止する。
+テンプレート変数はAuthorization headerの`${fixture.token.<selected-identity>}`だけを参照できる。
+body、path、oracle、その他headerからの環境変数、host path、任意 commandへの展開を禁止する。
 
 ### 13.8 VerificationResult
 
@@ -692,6 +699,7 @@ v1 の HTTP DSL は次を持つ。
 | oracle | object | yes | 期待と観測の比較、violated |
 | started_at / finished_at | datetime | yes | 実行時刻 |
 | verifier_version | string | yes | 判定コードの版 |
+| verifier_image | digest reference | yes | 判定コードを実行したimmutable image identity |
 | policy_fingerprint | string | yes | 適用ポリシー |
 
 `not-proved` は「安全であることの一般的証明」ではなく、宣言ケースで禁止条件が観測されなかった
@@ -870,23 +878,21 @@ Runtime Adapter は対象チームと監査側がレビューした application 
 ```yaml
 schema_version: 1
 name: typescript-nextjs-postgres
-image: org/whitebox-runtime-nextjs:2026-08
-start:
-  command_id: start-app
+image: org/whitebox-runtime-nextjs@sha256:<reviewed-64-hex-digest>
+command_id: start-app
+service:
+  host: app
+  port: 8080
 health:
-  type: http
-  url: http://app:8080/health
+  path: /health
+  timeout_seconds: 10
 fixtures:
-  - seed-db
+  - tenant-a-and-b
 identities:
   - anonymous
-  - tenant_a_user
-  - tenant_b_user
+  - tenant-a-user
+  - tenant-b-user
   - admin
-ports:
-  - 8080
-network:
-  egress: none
 ```
 
 `command_id` は adapter image 内の固定コマンドを指し、対象や agent が提供する任意文字列ではない。
@@ -1157,7 +1163,7 @@ Evidence pipeline と Verifier が成立する前に、複雑な LLM orchestrati
 
 ## 26. 現在の実装状態
 
-2026-08-15 時点で、Milestone 0〜3として次を実装済みである。
+2026-08-17 時点で、Milestone 0〜3とMilestone 4のpolicy/DSL phaseとして次を実装済みである。
 
 - Python 3.12+ package、`whitebox-audit` CLI、`doctor` / `supply-chain check` command
 - human-readable / JSON capability report と安定した終了コード
@@ -1175,17 +1181,20 @@ Evidence pipeline と Verifier が成立する前に、複雑な LLM orchestrati
 - declared/inferred Invariant provenance、stable ID、target/reference integrity、Finding state machine
 - strict JSON/YAML input、operator input原文保存とEvidence化、immutable JSONL repository
 - `invariant add/list`、`hypothesis add/list`、`evidence list`、`show-evidence` CLI
-- ADR、要件トレーサビリティ、Milestone 0〜3実行結果
-- 80件以上のunit/integration/security test
+- `config/verifier-policy.yaml`、strict policy/runtime adapter parser、immutable fingerprint
+- bounded HTTP VerificationCase DSL、policy上限、fixture/identity/header allowlist、限定JSONPath oracle
+- VerificationCase/policy/adapterのrun-relative artifactと`verification-case add/list` CLI
+- ADR、要件トレーサビリティ、Milestone 0〜3実行結果、Milestone 4 Phase 1〜2実行結果
+- 90件以上のunit/integration/security test
 
 次は未実装である。
 
 - CodeQL adapter
-- Next.js / PostgreSQL fixtureとVerifier image / controller / DSL
-- VerificationCase/Resultの実行・永続化、Finding永続化
+- Next.js / PostgreSQL fixtureとVerifier image / controller
+- VerificationResultの実行・永続化、Finding永続化
 - Agent navigation、Reporter、patch workflow、evaluation harness
 
-Verifier、agent navigation、report、patch系CLIは現時点では実装目標および受入仕様である。
+Verifier実行、agent navigation、report、patch系CLIは現時点では実装目標および受入仕様である。
 Semgrep実行は現在host adapterであり、OS-level network deny/read-only mountは未実装である。
 
 ## 27. 未決定事項
@@ -1199,9 +1208,8 @@ Semgrep実行は現在host adapterであり、OS-level network deny/read-only mo
 4. run status と object state transition の永続 audit log 形式
 5. Severity policy の具体的な組織閾値
 6. report retention の既定期間と安全な run deletion UX
-7. HTTP DSL で許可する body、header、JSONPath の厳密な部分集合
-8. scanner container の配布・署名・pinning 方式
-9. 非対話 Codex 実行での model budget、resume、失敗回復ポリシー
+7. scanner container の配布・署名・pinning 方式
+8. 非対話 Codex 実行での model budget、resume、失敗回復ポリシー
 
 これらを決定する際も、対象をホスト上で実行しないこと、Discovery と Verifier を分離すること、
 `verified` を機械的証拠に限定することは変更不可の制約である。

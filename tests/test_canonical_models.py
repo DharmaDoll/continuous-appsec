@@ -86,6 +86,7 @@ def _verification(status: VerificationStatus) -> VerificationResult:
         started_at="2026-08-15T00:00:00Z",
         finished_at="2026-08-15T00:00:01Z",
         verifier_version="test",
+        verifier_image="example/verifier@sha256:" + "c" * 64,
         policy_fingerprint="b" * 64,
     )
 
@@ -159,7 +160,10 @@ def test_future_verification_and_finding_models_have_json_round_trip() -> None:
     case_content = {
         "target_tree_hash": TREE_HASH,
         "hypothesis_id": HYPOTHESIS_ID,
+        "policy_fingerprint": "c" * 64,
+        "adapter_fingerprint": "d" * 64,
         "runtime_profile": "nextjs-postgres",
+        "runtime_image": "example/verifier-fixture@sha256:" + "e" * 64,
         "setup": {"fixture": "tenant-a-and-b"},
         "actor": {"identity": "tenant-a-user"},
         "action": {"protocol": "http", "method": "GET", "path": "/api/invoices/b"},
@@ -172,7 +176,10 @@ def test_future_verification_and_finding_models_have_json_round_trip() -> None:
         target_id=TARGET_ID,
         target_tree_hash=TREE_HASH,
         hypothesis_id=HYPOTHESIS_ID,
+        policy_fingerprint="c" * 64,
+        adapter_fingerprint="d" * 64,
         runtime_profile="nextjs-postgres",
+        runtime_image="example/verifier-fixture@sha256:" + "e" * 64,
         setup={"fixture": "tenant-a-and-b"},
         actor={"identity": "tenant-a-user"},
         action={"protocol": "http", "method": "GET", "path": "/api/invoices/b"},

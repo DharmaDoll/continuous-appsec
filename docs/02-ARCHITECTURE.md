@@ -93,6 +93,9 @@ work/<run-id>/
 ├── invariants/
 ├── hypotheses/
 ├── verification/
+│   ├── cases.jsonl
+│   ├── policies/<policy-sha256>.json
+│   └── adapters/<adapter-sha256>.json
 └── reports/
 ```
 

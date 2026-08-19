@@ -412,36 +412,36 @@ stub、未実行の scanner、未実行の PoC を完了として扱わない。
 
 ### M4.1 Verifier policy と threat model
 
-- [ ] `config/verifier-policy.yaml` の schema を定義する。
-- [ ] unknown verifier policy key を拒否する。
-- [ ] network、filesystem、capability、resource、timeout の上限を定義する。
-- [ ] case の要求が policy を緩和できない設計にする。
-- [ ] Verifier code と Discovery output の trust boundary を文書化する。
-- [ ] verifier image identity と policy fingerprint を結果へ記録する。
+- [x] `config/verifier-policy.yaml` の schema を定義する。
+- [x] unknown verifier policy key を拒否する。
+- [x] network、filesystem、capability、resource、timeout の上限を定義する。
+- [x] case の要求が policy を緩和できない設計にする。
+- [x] Verifier code と Discovery output の trust boundary を文書化する。
+- [x] verifier image identity と policy fingerprint を結果へ記録する。
 
 ### M4.2 HTTP VerificationCase DSL
 
-- [ ] `schema_version=1` を定義する。
-- [ ] runtime profile reference を検証する。
-- [ ] fixture/seed ID を allowlist 検証する。
-- [ ] actor identity を adapter 定義から検証する。
-- [ ] HTTP method allowlist を定義する。
-- [ ] path を local target service の相対 URL に制限する。
-- [ ] header allowlist と Authorization template を定義する。
-- [ ] request body のサイズと形式を制限する。
-- [ ] status oracle を実装する。
-- [ ] JSON assertion oracle の安全な部分集合を実装する。
-- [ ] arbitrary shell、host path、environment reference を schema で拒否する。
-- [ ] limits が policy 上限を超えないことを検証する。
+- [x] `schema_version=1` を定義する。
+- [x] runtime profile reference を検証する。
+- [x] fixture/seed ID を allowlist 検証する。
+- [x] actor identity を adapter 定義から検証する。
+- [x] HTTP method allowlist を定義する。
+- [x] path を local target service の相対 URL に制限する。
+- [x] header allowlist と Authorization template を定義する。
+- [x] request body のサイズと形式を制限する。
+- [x] status oracle を実装する。
+- [x] JSON assertion oracle の安全な部分集合を実装する。
+- [x] arbitrary shell、host path、environment reference を schema で拒否する。
+- [x] limits が policy 上限を超えないことを検証する。
 
 ### M4.3 Runtime Adapter
 
-- [ ] Runtime Adapter schema を定義する。
-- [ ] image、`command_id`、health check、fixtures、identities、ports を検証する。
+- [x] Runtime Adapter schema を定義する。
+- [x] image、`command_id`、health check、fixtures、identities、ports を検証する。
 - [ ] `command_id` を固定の image command へ解決する。
-- [ ] target 由来の任意 start command を拒否する。
-- [ ] adapter image の version/digest を記録する。
-- [ ] health check timeout を実装する。
+- [x] target 由来の任意 start command を拒否する。
+- [x] adapter image の version/digest を記録する。
+- [x] health check timeout を実装する。
 - [ ] fixture seed の deterministic identity/token 発行を実装する。
 - [ ] ephemeral service lifecycle を controller で管理する。
 
@@ -466,36 +466,36 @@ stub、未実行の scanner、未実行の PoC を完了として扱わない。
 ### M4.5 Verifier sandbox
 
 - [ ] `verifier/Dockerfile` を作成する。
-- [ ] verifier entrypoint を固定する。
-- [ ] container root filesystem を read-only にする。
-- [ ] `/tmp` を `noexec,nosuid,nodev` tmpfs にする。
-- [ ] target mount を read-only にする。
-- [ ] case mount を read-only にする。
-- [ ] output mount だけを書込み可能にする。
-- [ ] `--cap-drop ALL` を適用する。
-- [ ] `no-new-privileges` を適用する。
-- [ ] PID limit を適用する。
-- [ ] memory limit を適用する。
-- [ ] CPU limit を適用する。
+- [x] verifier entrypoint を `/case` 入力、`/output/result.json` 出力へ固定する。
+- [x] Docker argv builder で container root filesystem を read-only にする。
+- [x] Docker argv builder で `/tmp` を `noexec,nosuid,nodev` tmpfs にする。
+- [x] Docker argv builder で target mount を read-only にする。
+- [x] Docker argv builder で case mount を read-only にする。
+- [x] Docker argv builder で output mount だけを書込み可能にする。
+- [x] Docker argv builder で `--cap-drop ALL` を適用する。
+- [x] Docker argv builder で `no-new-privileges` を適用する。
+- [x] Docker argv builder で PID limit を適用する。
+- [x] Docker argv builder で memory limit を適用する。
+- [x] Docker argv builder で CPU limit を適用する。
 - [ ] wall-clock timeout を適用する。
-- [ ] Docker socket を mount しない。
-- [ ] host home、SSH、cloud、registry config を mount しない。
+- [x] Docker argv builder の3 mount allowlistに Docker socket を含めない。
+- [x] Docker argv builder の3 mount allowlistに host home、SSH、cloud、registry config を含めない。
 - [ ] 既定 `--network none` を実装する。
-- [ ] HTTP fixture 用の外部 egress なし ephemeral network を実装する。
+- [x] HTTP fixture 用の `docker network create --internal` argv を実装する。
 - [ ] timeout/exception 後に container と network を cleanup する。
 
 ### M4.6 Verifier execution と verdict
 
-- [ ] case schema validation を実行前に行う。
-- [ ] setup、action、oracle を固定順序で実行する。
-- [ ] HTTP response status を observation に保存する。
+- [x] case schema validation を実行前に行う。
+- [x] fixture照合、HTTP action、oracle を固定順序で実行する。
+- [x] HTTP response status を observation に保存する。
 - [ ] response body は必要最小限を redaction して artifact 化する。
-- [ ] body hash を保存する。
-- [ ] expected secure behavior と observed behavior を比較する。
+- [x] bounded response の body hash を保存する。
+- [x] forbidden status / JSON equality と observed behavior を比較する。
 - [ ] `proved/not-proved/inconclusive/policy-rejected/error` を区別する。
 - [ ] setup failure を `not-proved` にしない。
-- [ ] Verifier のみが result file を生成できるようにする。
-- [ ] result に target tree hash と policy fingerprint を保存する。
+- [x] 固定 verifier entrypoint だけが `/output/result.json` を生成する構造にする。
+- [x] result に target tree hash、policy fingerprint、verifier image digest を保存する。
 - [ ] output artifact の content hash を保存する。
 - [ ] case/result/log を run directory に保存する。
 
@@ -512,10 +512,11 @@ stub、未実行の scanner、未実行の PoC を完了として扱わない。
 
 - [ ] vulnerable fixture が `proved` になる test を追加する。
 - [ ] fixed fixture が `not-proved` になる test を追加する。
+- [x] fake HTTP observation で固定runtimeの `proved/not-proved/inconclusive/error` unit test を追加する。
 - [ ] target source write が失敗する test を追加する。
 - [ ] verifier code write が失敗する test を追加する。
-- [ ] arbitrary shell field が拒否される test を追加する。
-- [ ] host absolute path が拒否される test を追加する。
+- [x] arbitrary shell field が拒否される test を追加する。
+- [x] host absolute path が拒否される test を追加する。
 - [ ] external egress が失敗する test を追加する。
 - [ ] Docker socket が存在しない test を追加する。
 - [ ] fake host credential が見えない test を追加する。
@@ -524,7 +525,7 @@ stub、未実行の scanner、未実行の PoC を完了として扱わない。
 - [ ] forged `proved` result が受理されない test を追加する。
 - [ ] repeated run の verdict が再現することを確認する。
 - [ ] formatter、linter、typecheck、unit/security/integration test を実行する。
-- [ ] Verifier limitation を文書化する。
+- [x] 現時点の Verifier limitation を文書化する。
 
 ## Milestone 5: Agentic Audit Skill と安全なナビゲーション
 
@@ -914,9 +915,9 @@ stub、未実行の scanner、未実行の PoC を完了として扱わない。
 
 - [ ] `config/audit.default.yaml` を実装する。
 - [ ] `config/scanners.yaml` を実装する。
-- [ ] `config/verifier-policy.yaml` を実装する。
+- [x] `config/verifier-policy.yaml` を実装する。
 - [ ] CLI > profile > local config > default の優先順位を実装する。
-- [ ] unknown key を既定で拒否する。
+- [x] unknown key を既定で拒否する。
 - [ ] effective config から secrets を除外して fingerprint 化する。
 - [ ] schema compatibility と migration test を追加する。
 
@@ -951,7 +952,7 @@ stub、未実行の scanner、未実行の PoC を完了として扱わない。
 - [ ] Semgrep SARIF を raw 保存し Evidence へ正規化する。
 - [ ] scanner failure と malformed SARIF が可視化される。
 - [ ] manual Hypothesis から Verifier へ進める。
-- [ ] HTTP VerificationCase DSL が任意 shell を拒否する。
+- [x] HTTP VerificationCase DSL が任意 shell を拒否する。
 - [ ] Verifier が read-only、no egress、least privilege で動作する。
 - [ ] vulnerable fixture は `proved`、fixed fixture は `not-proved` になる。
 - [ ] Discovery Agent が `verified` を自己認定できない。

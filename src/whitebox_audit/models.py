@@ -15,6 +15,9 @@ SCHEMA_VERSION: Final[int] = 1
 _HASH_PATTERN: Final[re.Pattern[str]] = re.compile(r"[0-9a-f]{64}\Z")
 _RECORD_ID_PATTERN: Final[re.Pattern[str]] = re.compile(r"(?:INV|HYP|EVD|VER|FND)-[0-9a-f]{20}\Z")
 _TARGET_ID_PATTERN: Final[re.Pattern[str]] = re.compile(r"TGT-[0-9a-f]{20}\Z")
+_IMAGE_DIGEST_PATTERN: Final[re.Pattern[str]] = re.compile(
+    r"[A-Za-z0-9][A-Za-z0-9._/:+-]{0,500}@sha256:[0-9a-f]{64}\Z"
+)
 
 
 def stable_record_id(prefix: str, content: Mapping[str, object]) -> str:
@@ -620,7 +623,10 @@ class VerificationCase:
     target_id: str
     target_tree_hash: str
     hypothesis_id: str
+    policy_fingerprint: str
+    adapter_fingerprint: str
     runtime_profile: str
+    runtime_image: str
     setup: Mapping[str, object]
     actor: Mapping[str, object]
     action: Mapping[str, object]
@@ -634,7 +640,11 @@ class VerificationCase:
         if _TARGET_ID_PATTERN.fullmatch(self.target_id) is None:
             raise ValueError("invalid target ID")
         _validate_hash(self.target_tree_hash, "target tree hash")
+        _validate_hash(self.policy_fingerprint, "verifier policy fingerprint")
+        _validate_hash(self.adapter_fingerprint, "runtime adapter fingerprint")
         _validate_nonempty(self.runtime_profile, "runtime profile", maximum=200)
+        if _IMAGE_DIGEST_PATTERN.fullmatch(self.runtime_image) is None:
+            raise ValueError("runtime image must use an immutable sha256 digest")
         for value in (self.setup, self.actor, self.action, self.oracle, self.limits):
             if not value:
                 raise ValueError("verification case objects must not be empty")
@@ -646,7 +656,10 @@ class VerificationCase:
         return {
             "target_tree_hash": self.target_tree_hash,
             "hypothesis_id": self.hypothesis_id,
+            "policy_fingerprint": self.policy_fingerprint,
+            "adapter_fingerprint": self.adapter_fingerprint,
             "runtime_profile": self.runtime_profile,
+            "runtime_image": self.runtime_image,
             "setup": _json_object(self.setup),
             "actor": _json_object(self.actor),
             "action": _json_object(self.action),
@@ -662,6 +675,53 @@ class VerificationCase:
             **self.stable_content(),
         }
 
+    @classmethod
+    def create(
+        cls,
+        *,
+        target_id: str,
+        target_tree_hash: str,
+        hypothesis_id: str,
+        policy_fingerprint: str,
+        adapter_fingerprint: str,
+        runtime_profile: str,
+        runtime_image: str,
+        setup: Mapping[str, object],
+        actor: Mapping[str, object],
+        action: Mapping[str, object],
+        oracle: Mapping[str, object],
+        limits: Mapping[str, object],
+    ) -> Self:
+        content = {
+            "target_tree_hash": target_tree_hash,
+            "hypothesis_id": hypothesis_id,
+            "policy_fingerprint": policy_fingerprint,
+            "adapter_fingerprint": adapter_fingerprint,
+            "runtime_profile": runtime_profile,
+            "runtime_image": runtime_image,
+            "setup": _json_object(setup),
+            "actor": _json_object(actor),
+            "action": _json_object(action),
+            "oracle": _json_object(oracle),
+            "limits": _json_object(limits),
+        }
+        return cls(
+            SCHEMA_VERSION,
+            stable_record_id("VER", content),
+            target_id,
+            target_tree_hash,
+            hypothesis_id,
+            policy_fingerprint,
+            adapter_fingerprint,
+            runtime_profile,
+            runtime_image,
+            _json_object(setup),
+            _json_object(actor),
+            _json_object(action),
+            _json_object(oracle),
+            _json_object(limits),
+        )
+
 
 @dataclass(frozen=True, slots=True)
 class VerificationResult:
@@ -675,6 +735,7 @@ class VerificationResult:
     started_at: str
     finished_at: str
     verifier_version: str
+    verifier_image: str
     policy_fingerprint: str
 
     def __post_init__(self) -> None:
@@ -684,6 +745,8 @@ class VerificationResult:
         _validate_hash(self.policy_fingerprint, "policy fingerprint")
         _validate_nonempty(self.verifier_run_id, "verifier run ID", maximum=200)
         _validate_nonempty(self.verifier_version, "verifier version", maximum=200)
+        if _IMAGE_DIGEST_PATTERN.fullmatch(self.verifier_image) is None:
+            raise ValueError("verifier image must use an immutable sha256 digest")
         for observation in self.observations:
             _json_object(observation)
         if not self.oracle:
@@ -702,6 +765,7 @@ class VerificationResult:
             "started_at": self.started_at,
             "finished_at": self.finished_at,
             "verifier_version": self.verifier_version,
+            "verifier_image": self.verifier_image,
             "policy_fingerprint": self.policy_fingerprint,
         }
 

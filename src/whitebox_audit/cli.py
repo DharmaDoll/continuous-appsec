@@ -18,6 +18,7 @@ from whitebox_audit.models import (
     Hypothesis,
     PrepareResult,
     SecurityInvariant,
+    VerificationCase,
 )
 from whitebox_audit.prepare import PrepareController, discover_harness_root
 from whitebox_audit.record_store import RunRecordStore, load_record_document
@@ -27,6 +28,7 @@ from whitebox_audit.supply_chain import (
     SupplyChainStatus,
     inspect_supply_chain,
 )
+from whitebox_audit.verifier import parse_runtime_adapter, parse_verifier_policy
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -134,6 +136,28 @@ def build_parser() -> argparse.ArgumentParser:
     hypothesis_list = hypothesis_subparsers.add_parser("list", help="list hypotheses for a run")
     hypothesis_list.add_argument("--run-id", required=True)
     hypothesis_list.add_argument("--format", choices=("human", "json"), default="human")
+
+    verification_case = subparsers.add_parser(
+        "verification-case", help="manage declarative verifier cases"
+    )
+    verification_case_subparsers = verification_case.add_subparsers(
+        dest="verification_case_command", required=True
+    )
+    verification_case_add = verification_case_subparsers.add_parser(
+        "add", help="validate and persist an HTTP verification case"
+    )
+    verification_case_add.add_argument("--run-id", required=True)
+    verification_case_add.add_argument("--file", required=True)
+    verification_case_add.add_argument(
+        "--policy", help="verifier policy JSON/YAML (default: config/verifier-policy.yaml)"
+    )
+    verification_case_add.add_argument("--adapter", required=True)
+    verification_case_add.add_argument("--format", choices=("human", "json"), default="human")
+    verification_case_list = verification_case_subparsers.add_parser(
+        "list", help="list verification cases for a run"
+    )
+    verification_case_list.add_argument("--run-id", required=True)
+    verification_case_list.add_argument("--format", choices=("human", "json"), default="human")
     return parser
 
 
@@ -218,6 +242,15 @@ def render_hypotheses_human(records: Sequence[Hypothesis]) -> str:
     if not records:
         return "No hypothesis records."
     return "\n".join(f"{item.hypothesis_id} [{item.status}] {item.title}" for item in records)
+
+
+def render_verification_cases_human(records: Sequence[VerificationCase]) -> str:
+    if not records:
+        return "No verification case records."
+    return "\n".join(
+        f"{item.verification_id} [http] {item.hypothesis_id} via {item.runtime_profile}"
+        for item in records
+    )
 
 
 def _record_error(error: TypeError | ValueError) -> WhiteboxAuditError:
@@ -367,6 +400,46 @@ def run(
                 out.write("\n")
             else:
                 out.write(render_hypotheses_human(hypothesis_records) + "\n")
+            return int(ExitCode.OK)
+        if args.command == "verification-case":
+            root = discover_harness_root(Path.cwd()) if harness_root is None else harness_root
+            store = RunRecordStore(root, args.run_id)
+            if args.verification_case_command == "add":
+                policy_path = (
+                    Path(args.policy)
+                    if args.policy is not None
+                    else root / "config" / "verifier-policy.yaml"
+                )
+                case_document, _case_raw, _case_suffix = load_record_document(Path(args.file))
+                policy_document, _policy_raw, _policy_suffix = load_record_document(policy_path)
+                adapter_document, _adapter_raw, _adapter_suffix = load_record_document(
+                    Path(args.adapter)
+                )
+                try:
+                    policy = parse_verifier_policy(policy_document)
+                    adapter = parse_runtime_adapter(adapter_document, policy)
+                    verification_case_record = store.add_verification_case_document(
+                        case_document,
+                        policy=policy,
+                        adapter=adapter,
+                    )
+                except (TypeError, ValueError) as error:
+                    raise _record_error(error) from error
+                verification_case_records: tuple[VerificationCase, ...] = (
+                    verification_case_record,
+                )
+            else:
+                verification_case_records = store.list_verification_cases()
+            if args.format == "json":
+                payload = (
+                    verification_case_records[0].to_dict()
+                    if args.verification_case_command == "add"
+                    else [item.to_dict() for item in verification_case_records]
+                )
+                json.dump(payload, out, indent=2, sort_keys=True)
+                out.write("\n")
+            else:
+                out.write(render_verification_cases_human(verification_case_records) + "\n")
             return int(ExitCode.OK)
         raise WhiteboxAuditError("unknown command", ExitCode.INVALID_INPUT)
     except WhiteboxAuditError as error:
