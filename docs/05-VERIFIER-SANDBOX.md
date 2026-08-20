@@ -33,7 +33,7 @@ VerificationResult
 
 ## Baseline container policy
 
-Example starting command:
+The baseline for a no-network verification command is:
 
 ```bash
 docker run --rm \
@@ -48,8 +48,11 @@ docker run --rm \
   -v "$TARGET:/target:ro" \
   -v "$CASE_DIR:/case:ro" \
   -v "$OUTPUT_DIR:/output:rw" \
-  whitebox-audit-verifier:local
+  org/whitebox-ai-audit-verifier@sha256:<reviewed-64-hex-digest>
 ```
+
+HTTP fixture verification instead attaches the verifier and target service to a dedicated `docker network create
+--internal` network. It must not attach either container to the default bridge or another egress-capable network.
 
 Do not mount:
 
@@ -72,7 +75,8 @@ Use `--network none`.
 
 Some HTTP verification requires target + verifier containers to communicate.
 
-Create a dedicated ephemeral Docker network with no external egress where possible.
+Create a dedicated ephemeral Docker internal network with external egress disabled. A normal bridge network is
+not sufficient because it may route traffic through the host.
 
 The runtime adapter should start:
 
@@ -105,36 +109,37 @@ Conceptual:
 
 ```yaml
 schema_version: 1
-id: VER-...
-finding_candidate: HYP-...
+verification_id: VER-... # optional on import; the harness derives and verifies it
+hypothesis_id: HYP-...
 runtime_profile: demo-webapp
 
 setup:
-  seed_fixture: tenant-a-and-b
+  fixture: tenant-a-and-b
 
 actor:
-  identity: tenant_a_user
+  identity: tenant-a-user
 
 action:
   protocol: http
   method: GET
   path: /api/invoices/inv-tenant-b
   headers:
-    Authorization: "${fixture.token.tenant_a_user}"
+    Authorization: "${fixture.token.tenant-a-user}"
 
 oracle:
-  type: json_assertion
-  forbidden_condition:
-    response_status: 200
-    json:
-      path: $.tenant_id
+  forbidden_status: 200
+  json_assertions:
+    - path: $.tenant_id
       equals: tenant-b
 
 limits:
   timeout_seconds: 30
+  max_response_body_bytes: 262144
 ```
 
-The discovery agent may fill allowed fields but may not introduce arbitrary host commands.
+The discovery agent may fill allowed fields but may not introduce arbitrary host commands. On import, the harness
+injects `target_id`, `target_tree_hash`, `policy_fingerprint`, `adapter_fingerprint`, and the digest-pinned runtime
+image into the canonical case. The normalized policy and adapter are stored beside the case in the run directory.
 
 ## Avoid arbitrary shell PoCs
 
@@ -171,6 +176,8 @@ Example:
 ```json
 {
   "verification_id": "VER-...",
+  "verifier_run_id": "VRUN-...",
+  "target_tree_hash": "...",
   "status": "proved",
   "observations": [
     {
@@ -181,14 +188,22 @@ Example:
     }
   ],
   "oracle": {
-    "expected_secure_behavior": "403 or not-found",
-    "observed_behavior": "200 with tenant-b resource",
+    "forbidden_status": 200,
+    "observed_status": 200,
     "violated": true
-  }
+  },
+  "verifier_image": "org/whitebox-ai-audit-verifier@sha256:<reviewed-64-hex-digest>",
+  "policy_fingerprint": "..."
 }
 ```
 
 Only verifier code can create `status = proved`.
+
+The fixed v1 runtime reads only `/case/policy.json`, `adapter.json`, `case.json`, `fixture.json`, and
+`execution.json`; it atomically writes `/output/result.json`. It supports one HTTP action followed by the fixed
+status/scalar-JSON oracle. Fixture tokens are resolved only for the selected actor and are never copied into the
+result. Response bodies are bounded and represented by size and SHA-256 rather than persisted verbatim. Selected
+string values used by an oracle are likewise represented only by length and SHA-256 in the result.
 
 ## Runtime adapter
 
@@ -197,23 +212,22 @@ Real internal applications differ.
 Define a reviewed adapter per application family:
 
 ```yaml
+schema_version: 1
 name: python-fastapi-postgres
-image: org/whitebox-runtime-python:2026-08
-start:
-  command_id: start-app
+image: org/whitebox-runtime-python@sha256:<reviewed-64-hex-digest>
+command_id: start-app
+service:
+  host: app
+  port: 8080
 health:
-  type: http
-  url: http://app:8080/health
+  path: /health
+  timeout_seconds: 10
 fixtures:
-  - seed-db
+  - tenant-a-and-b
 identities:
   - anonymous
-  - user
+  - tenant-a-user
   - admin
-ports:
-  - 8080
-network:
-  egress: none
 ```
 
 `command_id` refers to a pre-reviewed command embedded in the runtime adapter image; it is not arbitrary text from the target.
@@ -254,3 +268,7 @@ Some issues are hard to prove safely:
 - production-only trust boundaries.
 
 For these, support `high-confidence-static` with explicit limitations rather than manufacturing "proof".
+
+Current implementation boundary (2026-08-17): the fixed HTTP runtime and least-privilege Docker/network argv
+builders have unit tests with a fake HTTP connection. A verifier image, target fixture lifecycle, wall-clock
+controller, cleanup execution, and live tests proving filesystem/resource/egress isolation are still required.

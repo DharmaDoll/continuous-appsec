@@ -140,15 +140,23 @@ route cannot be reached by normal user
 
 Declarative request for independent execution.
 
-The serialized ID field is `verification_id`; the common Milestone 3 model also binds the case to `target_id`,
-`target_tree_hash`, and `hypothesis_id`. Protocol-specific validation belongs to the verifier milestone.
+The serialized ID field is `verification_id`. A canonical HTTP case binds the request to `target_id`,
+`target_tree_hash`, `hypothesis_id`, `policy_fingerprint`, `adapter_fingerprint`, a reviewed `runtime_profile`, and
+a digest-pinned `runtime_image`. The v1 protocol accepts only a bounded HTTP method/path/header/body action and a
+status and/or scalar JSON-path equality oracle. Policy and adapter fingerprints participate in the stable case ID.
+
+Operator/Discovery input cannot supply shell commands, remote URLs, host paths, environment references, mutable
+image tags, arbitrary fixture IDs, or resource limits above policy. The canonical case, normalized policy, and
+normalized adapter are immutable run-relative artifacts.
 
 ### VerificationResult
 
 Generated only by verifier.
 
 The result reuses the case `verification_id` and records the verifier run, target fingerprint, status,
-observations, oracle comparison, timestamps, verifier version, and policy fingerprint.
+observations, oracle comparison, timestamps, verifier version, immutable verifier image identity, and policy
+fingerprint. The fixed HTTP runtime stores bounded observations and a response-body hash, not fixture tokens or a
+raw response body.
 
 ### Finding
 

@@ -40,3 +40,10 @@ This table links the first implementation milestone to executable checks. It wil
 | FR-NAV-001 (`show-evidence`) | `evidence list`, `show-evidence`, invariant/hypothesis list CLI | human/JSON CLI integration tests |
 | FR-FND-001/002/003 | `FindingStatus`, `transition_finding` | invalid transition, not-proved, proved, static-trace gate tests |
 | SEC-009 | strict relative `EvidenceLocation` and run confinement | absolute path, symlink input, target fingerprint mismatch tests |
+| FR-VER-001 | bounded HTTP `VerificationCase` DSL | method/path/header/body/oracle/template/policy-limit tests |
+| FR-VER-002 | arbitrary executable fields are absent from the accepted schema | shell/host/environment reference rejection tests |
+| FR-VER-012 | strict `VerifierPolicy` and immutable policy fingerprint | unknown key, unsafe relaxation, hard resource ceiling tests |
+| FR-VER-013 | run-relative case/policy/adapter persistence | immutable repeat import, tamper detection, CLI add/list tests |
+| FR-VER-003/004/005 | fixed HTTP action/oracle and bounded observations | proved/not-proved, body-limit, malformed JSON, transport-error tests |
+| FR-VER-006/007/008/010 | least-privilege verifier sandbox command | internal-network, read-only, capability/resource, three-mount argv tests; live isolation pending |
+| FR-VER-009 | VerificationResult provenance | target/policy/verifier-image fields and token non-persistence tests |

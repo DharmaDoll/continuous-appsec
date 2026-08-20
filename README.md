@@ -29,7 +29,8 @@ The implementation must optimize for:
 
 ### Current implementation
 
-Milestones 0 through 3 are implemented as an executable, safety-first foundation:
+Milestones 0 through 3 and the policy/DSL/runtime boundary of Milestone 4 are implemented as an executable,
+safety-first foundation:
 
 - Python 3.12+ package and `whitebox-audit` CLI,
 - non-destructive `whitebox-audit doctor` capability checks,
@@ -47,10 +48,20 @@ Milestones 0 through 3 are implemented as an executable, safety-first foundation
 - canonical SecurityInvariant, Hypothesis, VerificationCase, VerificationResult, and Finding models,
 - stable content-derived IDs, target/reference integrity, and the seven-state Finding transition policy,
 - strict JSON/YAML manual Invariant/Hypothesis import with preserved operator-source Evidence,
-- run-relative Evidence/Invariant/Hypothesis repositories and human/JSON inspection commands.
+- run-relative Evidence/Invariant/Hypothesis repositories and human/JSON inspection commands,
+- strict verifier policy and reviewed runtime-adapter schemas with immutable fingerprints,
+- a bounded HTTP VerificationCase DSL that rejects shell, host/remote paths, arbitrary templates, and policy
+  relaxation,
+- run-relative VerificationCase, policy, and adapter artifacts plus `verification-case add/list` commands,
+- a fixed HTTP verifier runtime that resolves only fixture-token references, bounds observations, and emits
+  `proved` / `not-proved` / `inconclusive` / `error` results without persisting tokens or response bodies,
+- pure Docker command construction for a digest-pinned verifier on an internal network with a read-only root,
+  dropped capabilities, resource limits, and an explicit three-mount allowlist.
 
-CodeQL execution, agent-driven hypothesis orchestration, Verifier execution, Finding persistence, and report
-generation are not implemented yet.
+The verifier Dockerfile, target-service lifecycle, controller execution/cleanup, real container isolation tests,
+CodeQL execution, agent-driven hypothesis orchestration, Finding persistence, and report generation are not
+implemented yet. The Docker command builder has unit coverage, but its isolation properties have not yet been
+demonstrated by running a container in this environment.
 Semgrep is not auto-installed; an unavailable executable produces a recorded `skipped` scanner run and a
 `degraded` audit run. The current host adapter detects target mutation after execution but does not yet enforce a
 read-only mount or OS-level network denial. See [`ADR 0008`](docs/adr/0008-semgrep-evidence-boundary.md).
@@ -71,6 +82,11 @@ make malware-check
 make prepare TARGET=/absolute/path/to/target
 # requires a trusted, operator-installed Semgrep executable
 make scan TARGET=/absolute/path/to/target
+# create a schema-validated case; this does not execute the verifier yet
+whitebox-audit verification-case add \
+  --run-id RUN-... \
+  --file case.yaml \
+  --adapter reviewed-adapter.yaml
 ```
 
 `make setup` creates `.venv/` inside this repository. When `python3` is older than 3.12, select a supported

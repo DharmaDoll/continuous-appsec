@@ -6,9 +6,13 @@ This plan implements the Whitebox Audit Engine. PR/schedule orchestration, chang
 lifecycle, and vulnerability-management workflows are outside v1 and must not displace the evidence pipeline and
 independent verifier milestones.
 
-Implementation status on 2026-08-15: Milestones 0 through 3 are complete. Milestone 4 is next. See `plan.md`
-for the executable checklist and `docs/16-MILESTONE-0-RESULTS.md` through
-`docs/19-MILESTONE-3-RESULTS.md` for verified coverage and limitations.
+Implementation status on 2026-08-17: Milestones 0 through 3 are complete. Milestone 4 policy, reviewed-adapter
+schema, bounded HTTP DSL, VerificationCase persistence, fixed HTTP verdict runtime, and least-privilege Docker
+command construction are implemented. The verifier image, controller/lifecycle, fixture, and live isolation tests
+are next. See `plan.md`
+for the executable checklist, `docs/16-MILESTONE-0-RESULTS.md` through
+`docs/19-MILESTONE-3-RESULTS.md` for completed milestones, and `docs/20-MILESTONE-4-PHASE-1-RESULTS.md` for the
+declarative boundary. Phase 2 runtime results are in `docs/21-MILESTONE-4-PHASE-2-RESULTS.md`.
 
 ## Milestone 0 - Repository and environment
 
@@ -125,10 +129,30 @@ Implement:
 - fixed verifier verdict,
 - resource/network policy.
 
+Implemented first phase:
+
+```bash
+whitebox-audit verification-case add \
+  --run-id RUN-... \
+  --file case.yaml \
+  --adapter reviewed-adapter.yaml
+whitebox-audit verification-case list --run-id RUN-...
+```
+
+Implemented second-phase boundary:
+
+- fixed `/case` to `/output/result.json` HTTP verifier runtime,
+- exact fixture-token resolution without secret persistence,
+- bounded status/scalar-JSON oracle and response hashing,
+- digest-pinned verifier identity in every result,
+- internal-network and least-privilege Docker argv construction.
+
+These components are unit tested without executing Docker. They do not yet constitute an end-to-end verifier.
+
 Acceptance:
 
 - known IDOR fixture is proved,
-- fixed fixture is rejected,
+- fixed fixture is `not-proved`,
 - verifier cannot edit target,
 - arbitrary shell field rejected,
 - network egress blocked.

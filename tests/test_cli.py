@@ -32,6 +32,7 @@ def test_module_help() -> None:
     assert "evidence" in completed.stdout
     assert "invariant" in completed.stdout
     assert "hypothesis" in completed.stdout
+    assert "verification-case" in completed.stdout
     assert "show-evidence" in completed.stdout
     assert completed.stderr == ""
 
@@ -55,6 +56,7 @@ def test_installed_console_script_help() -> None:
     assert "evidence" in completed.stdout
     assert "invariant" in completed.stdout
     assert "hypothesis" in completed.stdout
+    assert "verification-case" in completed.stdout
     assert completed.stderr == ""
 
 

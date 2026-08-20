@@ -1,0 +1,38 @@
+schema_version: 1
+network:
+  default: none
+  internal_allowed: true
+  external_egress: false
+filesystem:
+  root_read_only: true
+  target_read_only: true
+  case_read_only: true
+  output_only_writable: true
+  docker_socket: false
+  host_home: false
+capabilities:
+  drop_all: true
+  no_new_privileges: true
+limits:
+  timeout_seconds: 30
+  memory_bytes: 1073741824
+  cpu_count: 1.0
+  pids: 256
+  request_body_bytes: 65536
+  response_body_bytes: 262144
+  json_assertions: 8
+http:
+  methods:
+    - GET
+    - POST
+    - PUT
+    - PATCH
+    - DELETE
+  headers:
+    - accept
+    - authorization
+    - content-type
+    - if-match
+    - x-csrf-token
+image:
+  require_digest: true
